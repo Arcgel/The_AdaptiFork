@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessibility Hub</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define the popup size */
+        body {
+            width: 320px;
+            padding: 0;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            min-height: 200px; /* Ensure space for the panel */
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Main Panel Container -->
+    <div id="accessibility-hub-panel" class="p-3">
+        <!-- Content will be injected here by popup.js -->
+    </div>
+
+    <!-- Modal for Edit Tiles (Hidden by default) -->
+    <div id="accessibility-hub-edit-modal" class="hidden fixed inset-0 bg-white z-50 overflow-auto">
+        <!-- Edit UI will be injected here by popup.js -->
+    </div>
+    
+    <!-- Load the popup logic -->
+    <script src="popup.js"></script>
+</body>
+</html>
