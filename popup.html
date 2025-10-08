@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accessibility Hub</title>
+    
     <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+     <script src="lib/tailwind.js"></script>
     <style>
         /* Define the popup size */
         body {
@@ -25,14 +27,14 @@
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 Container">
     <!-- Main Panel Container -->
-    <div id="accessibility-hub-panel" class="p-3">
+    <div id="accessibility-hub-panel" class="p-3 ">
         <!-- Content will be injected here by popup.js -->
     </div>
 
     <!-- Modal for Edit Tiles (Hidden by default) -->
-    <div id="accessibility-hub-edit-modal" class="hidden fixed inset-0 bg-white z-50 overflow-auto">
+    <div id="accessibility-hub-edit-modal" class="hidden fixed inset-0 bg-white z-50 overflow-y-scroll overflow-x-hide">
         <!-- Edit UI will be injected here by popup.js -->
     </div>
     
