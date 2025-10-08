@@ -1,5 +1,5 @@
 {
-  "manifest_version": 3,
+ "manifest_version": 3,
   "name": "Modular Accessibility Hub (Toolbar Popup)",
   "version": "1.2",
   "description": "A highly customizable toolbar popup for web accessibility features, built with modular definitions and Tailwind CSS.",
@@ -9,7 +9,7 @@
   "permissions": [
     "storage"
   ],
-  "action": {
+ "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
   },
@@ -22,5 +22,8 @@
   ],
   "host_permissions": [
     "<all_urls>"
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 }

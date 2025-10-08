@@ -5,17 +5,64 @@ const ALL_FEATURES = [
         id: 'font-size',
         label: 'Text Size',
         icon: 'A+', 
-        tailwindClass: 'col-span-2', 
+        tailwindClass: 'col-span-1', 
         type: 'action',
         initialValue: 100, 
         unit: '%',
-        // Logic remains the same, but execution context is the popup.
+        
+        // The updated logic now includes communication with the webpage
         actionLogic: (feature) => {
+            // 1. Update the internal data model (as before)
             const nextScale = feature.actionValue >= 120 ? 100 : feature.actionValue + 10;
             feature.actionValue = nextScale;
+
+            // 2. 🌟 CRITICAL: Send the new value to the active content script 🌟
+            if (typeof chrome !== 'undefined' && chrome.tabs) {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (tabs.length > 0) {
+                        const activeTabId = tabs[0].id;
+                        
+                        // Send a message containing the new scale value
+                        chrome.tabs.sendMessage(activeTabId, {
+                            action: "APPLY_TEXT_SCALE", 
+                            value: feature.actionValue // e.g., 100, 110, or 120
+                        });
+                    }
+                });
+            }
+            // 3. Return the updated feature data for the popup UI
             return feature;
         }
     },
+    
+    // 🌟 NEW FEATURE: DARK MODE
+    {
+        id: 'dark-mode',
+        label: 'Dark Mode',
+        icon: '🌙',
+        tailwindClass: 'col-span-0', 
+        type: 'toggle',
+        initialValue: false,
+        actionLogic: (feature) => {
+            feature.actionValue = !feature.actionValue;
+            return feature;
+        }
+    },
+    
+    // 🌟 NEW FEATURE: VOLUME MASTER
+    {
+        id: 'volume-master',
+        label: 'Volume Master',
+        icon: '🔊',
+        tailwindClass: 'col-span-1', 
+        type: 'slider', 
+        initialValue: 100, 
+        min: 0, // Volume starts at 0%
+        max: 200, // Allows for boosting volume up to 200%
+        unit: '%',
+        actionLogic: (feature) => feature // Sliders handle interaction internally
+    },
+
     {
         id: 'brightness',
         label: 'Brightness',
@@ -32,7 +79,7 @@ const ALL_FEATURES = [
         id: 'high-contrast',
         label: 'High Contrast',
         icon: '⚫⚪',
-        tailwindClass: 'col-span-1', 
+        tailwindClass: 'col-span-2', 
         type: 'toggle',
         initialValue: false,
         actionLogic: (feature) => {
@@ -54,6 +101,7 @@ const ALL_FEATURES = [
             return feature;
         }
     }
+    
 ];
 
 // --- 2. SETUP & STATE MANAGEMENT (Local to Popup) ---
@@ -70,6 +118,7 @@ const loadSettings = async () => {
         currentSettings = ALL_FEATURES.map(defaultFeature => {
             const storedFeature = storedMap.get(defaultFeature.id);
             if (storedFeature) {
+                // Ensure default min/max/unit are preserved for UI rendering
                 return { ...defaultFeature, ...storedFeature };
             }
             return defaultFeature;
@@ -113,6 +162,8 @@ const saveSettings = async (shouldClose = false) => {
 
 // --- 3. UI RENDERING (Popup) ---
 
+// --- 3. UI RENDERING (Popup) ---
+
 const renderPanel = () => {
     const panel = document.getElementById('accessibility-hub-panel');
     const editModal = document.getElementById('accessibility-hub-edit-modal');
@@ -133,21 +184,84 @@ const renderPanel = () => {
     panel.appendChild(gridContainer);
     
     activeFeatures.forEach(feature => {
-        const valueDisplay = feature.type === 'toggle' ? (feature.actionValue ? 'ON' : 'OFF') : `${feature.actionValue}${feature.unit}`;
-        
+        // Correctly handle display for various types
+        let valueDisplay;
+        if (feature.type === 'toggle') {
+            valueDisplay = feature.actionValue ? 'ON' : 'OFF';
+        } else if (feature.type === 'slider') {
+            // For sliders, display the current value
+            valueDisplay = feature.actionValue > 100 && feature.id === 'volume-master' ? 
+                           `+${feature.actionValue - 100}${feature.unit} BOOST` :
+                           `${feature.actionValue}${feature.unit}`;
+        } else {
+            valueDisplay = `${feature.actionValue}${feature.unit}`;
+        }
+
         const tile = document.createElement('div');
-        tile.className = `acc-tile ${feature.tailwindClass} p-2 bg-white border border-gray-200 rounded-lg text-center cursor-pointer shadow-sm hover:bg-blue-50 transition duration-150 relative group`;
+        // NOTE: Sliders should not have cursor-pointer or hover effects on the entire tile
+        // to avoid interfering with the range input.
+        tile.className = `acc-tile ${feature.tailwindClass} p-2 bg-white border border-gray-200 rounded-lg text-center shadow-sm relative group`;
         tile.dataset.id = feature.id;
         tile.dataset.type = feature.type;
         tile.title = feature.label;
-        tile.innerHTML = `
-            <span class="text-xl font-bold block text-blue-600">${feature.icon}</span>
-            <span class="text-xs font-semibold text-gray-700 block mt-1 leading-none">${feature.label}</span>
-            <span class="text-[10px] text-gray-500 block leading-none mt-0.5">${valueDisplay}</span>
-        `;
         
-        // Attach feature interaction listener
-        tile.addEventListener('click', (e) => handleFeatureAction(e.currentTarget.dataset.id));
+        let tileContent;
+
+        if (feature.type === 'slider') {
+            // SLIDER TILE CONTENT: Includes the range input
+            tileContent = `
+                <span class="text-xl font-bold block text-blue-600">${feature.icon}</span>
+                <span class="text-xs font-semibold text-gray-700 block mt-1 leading-none">${feature.label}</span>
+                <input 
+                    type="range" 
+                    id="slider-${feature.id}" 
+                    min="${feature.min}" 
+                    max="${feature.max}" 
+                    value="${feature.actionValue}"
+                    class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer range-sm my-1"
+                >
+                <span id="display-${feature.id}" class="text-[10px] text-gray-500 block leading-none mt-0.5 font-bold">${valueDisplay}</span>
+            `;
+            tile.innerHTML = tileContent;
+
+            // Attach slider input listeners
+            const sliderInput = tile.querySelector(`#slider-${feature.id}`);
+            const displaySpan = tile.querySelector(`#display-${feature.id}`);
+
+            sliderInput.addEventListener('input', (e) => {
+                // Update display immediately on input (no saving yet)
+                const newValue = parseInt(e.target.value);
+                const newDisplay = newValue > 100 && feature.id === 'volume-master' ? 
+                                 `+${newValue - 100}${feature.unit} BOOST` :
+                                 `${newValue}${feature.unit}`;
+                displaySpan.textContent = newDisplay;
+                
+                // Update settings object (in memory)
+                const index = currentSettings.findIndex(f => f.id === feature.id);
+                currentSettings[index].actionValue = newValue;
+            });
+            
+            sliderInput.addEventListener('change', () => {
+                // Only save/apply settings once the slider is released
+                saveSettings();
+            });
+
+        } else {
+            // ACTION/TOGGLE TILE CONTENT: (Original format)
+            tileContent = `
+                <span class="text-xl font-bold block text-blue-600">${feature.icon}</span>
+                <span class="text-xs font-semibold text-gray-700 block mt-1 leading-none">${feature.label}</span>
+                <span class="text-[10px] text-gray-500 block leading-none mt-0.5">${valueDisplay}</span>
+            `;
+            tile.innerHTML = tileContent;
+            
+            // Re-add interactive classes for action/toggle tiles
+            tile.classList.add('cursor-pointer', 'hover:bg-blue-50');
+            
+            // Attach feature interaction listener for 'action' and 'toggle' types
+            tile.addEventListener('click', (e) => handleFeatureAction(e.currentTarget.dataset.id));
+        }
+        
         gridContainer.appendChild(tile);
     });
     
@@ -162,6 +276,8 @@ const renderPanel = () => {
     editButton.addEventListener('click', renderEditModal);
 };
 
+// You should also remove the now-unused handleSliderView function from your popup.js
+// if it still exists.
 
 // --- 4. TILE INTERACTION HANDLER ---
 
@@ -179,8 +295,21 @@ const handleFeatureAction = (featureId) => {
     saveSettings(); 
 };
 
+// Placeholder function for handling slider view/interaction
+const handleSliderView = (featureId) => {
+    const feature = currentSettings.find(f => f.id === featureId);
+    if (!feature) return;
+
+    // You would typically render an overlay with the slider here.
+    alert(`Opening slider control for: ${feature.label} (Current Value: ${feature.actionValue}${feature.unit})`);
+    
+    // The interaction logic (changing feature.actionValue) would happen in the 
+    // slider's input event handler, followed by saveSettings().
+};
+
 
 // --- 5. CUSTOMIZATION VIEW (Edit Modal) ---
+// (No changes needed in this section, as it relies on the ALL_FEATURES structure)
 
 const renderEditModal = () => {
     const modal = document.getElementById('accessibility-hub-edit-modal');
@@ -208,8 +337,8 @@ const renderEditModal = () => {
             <div class="space-y-3">
                 <h3 class="text-lg font-semibold text-blue-600">Active Tiles (Your Panel)</h3>
                 <div id="active-tiles-grid" 
-                     class="tile-grid grid grid-cols-4 gap-2 bg-gray-100 p-3 rounded-lg min-h-[100px]" 
-                     ondragover="event.preventDefault();"
+                    class="w-100 tile-grid grid grid-cols-2 gap-2 bg-gray-100 p-3 rounded-lg min-h-[100px]" 
+                    ondragover="event.preventDefault();"
                 >
                     ${activeTiles.map(tileToEditHTML).join('')}
                 </div>

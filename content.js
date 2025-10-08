@@ -1,17 +1,74 @@
 // --- 1. CORE CONFIGURATION: MODULAR FEATURE DEFINITIONS ---
-// This configuration is repeated here for the content script to know the feature structure and apply logic.
 const ALL_FEATURES = [
     {
-        id: 'font-size',
+        id: 'font-size-px',
         label: 'Text Size',
         icon: 'A+',
-        actionValue: 100, // Placeholder value - actual comes from storage
-        actionLogic: (feature) => feature,
+        // actionValue will now hold the desired font size in pixels (e.g., 16 = normal)
+        actionValue: 16, // Default to normal size (16px)
+        
+        // actionLogic should be updated to return the selected pixel value, 
+        // assuming it comes from a radio button group.
+        // For this example, we keep it simple, but in a real UI, this would handle the radio input change.
+        actionLogic: (feature) => feature, 
+
         applyLogic: (feature) => {
-            // Applies a scaling factor to the base font size for the whole page.
-            document.documentElement.style.setProperty('--custom-font-scale', feature.actionValue / 100);
+            // Get the pixel value directly from actionValue
+            const fontSizePx = feature.actionValue; 
+
+            // Apply the chosen pixel value directly to the root element's font-size
+            document.documentElement.style.setProperty(
+                'font-size',
+                `${fontSizePx}px` // Set the font size using the pixel value
+            );
+
+            // Optionally, remove the scaling variable if it's no longer used
+            document.documentElement.style.removeProperty('--custom-font-scale'); 
         }
     },
+
+    // 🌟 NEW FEATURE: DARK MODE
+    {
+        id: 'dark-mode',
+        label: 'Dark Mode',
+        icon: '🌙',
+        actionValue: false, // Boolean: true/false
+        actionLogic: (feature) => feature,
+        applyLogic: (feature) => {
+            if (feature.actionValue) {
+                // Returns the filter string for combination
+                return 'invert(100%) hue-rotate(180deg)';
+            }
+            return ''; 
+        }
+    },
+    
+    // 🌟 NEW FEATURE: MEDIA VOLUME CONTROL (FIXED)
+    {
+        id: 'volume-master',
+        label: 'Volume Master',
+        icon: '🔊',
+        actionValue: 100, // Percentage (0 to 100)
+        actionLogic: (feature) => feature,
+        applyLogic: (feature) => {
+            // Volume is not a CSS property, so we handle it outside the filter chain.
+            const volume = feature.actionValue / 100; 
+
+            const applyVolume = (media) => {
+                 // Volume property maxes out at 1.0 (100%). We can only *boost* up to 1.0.
+                 // The system volume control is a facade.
+                 media.volume = Math.min(1.0, Math.max(0.0, volume));
+            };
+            
+            // Apply to existing media elements
+            document.querySelectorAll('audio, video').forEach(applyVolume);
+
+            // Optional: If you want to handle dynamically added media elements,
+            // you'd typically use a MutationObserver here, but for simplicity
+            // we rely on the extension reloading settings when the popup closes.
+        }
+    },
+
     {
         id: 'brightness',
         label: 'Brightness',
@@ -19,8 +76,8 @@ const ALL_FEATURES = [
         actionValue: 100,
         actionLogic: (feature) => feature,
         applyLogic: (feature) => {
-            // Applies a CSS filter for brightness to the entire body.
-            document.body.style.filter = `brightness(${feature.actionValue / 100})`;
+             // Only return a brightness filter if it's not the default 100%
+            return feature.actionValue === 100 ? '' : `brightness(${feature.actionValue / 100})`;
         }
     },
     {
@@ -31,9 +88,9 @@ const ALL_FEATURES = [
         actionLogic: (feature) => feature,
         applyLogic: (feature) => {
             if (feature.actionValue) {
-                // Inverts colors and shifts hue for high contrast effect.
-                document.body.style.filter += ' invert(100%) hue-rotate(180deg)'; 
+                return 'grayscale(100%) contrast(150%)'; 
             }
+            return ''; 
         }
     },
     {
@@ -43,7 +100,7 @@ const ALL_FEATURES = [
         actionValue: 0,
         actionLogic: (feature) => feature,
         applyLogic: (feature) => {
-            // Applies letter spacing using a custom CSS variable.
+             // APPLY FIX: Spacing logic is correct, no change needed here.
             document.documentElement.style.setProperty('--custom-letter-spacing', `${feature.actionValue}px`);
         }
     }
@@ -54,35 +111,59 @@ const ALL_FEATURES = [
 const STORAGE_KEY = 'accessibilityHubSettings';
 let currentSettings = [];
 
-// Inject Tailwind CSS CDN and custom CSS variables needed for features
+// Inject styles (Removed CDN for Mv3 compliance, keeping only custom styles)
 const injectStyles = () => {
-    // Inject Tailwind CDN (optional, but good practice if needed for injected elements)
-    if (!document.getElementById('tailwind-cdn')) {
-        const twScript = document.createElement('script');
-        twScript.src = "https://cdn.tailwindcss.com";
-        twScript.id = "tailwind-cdn";
-        document.head.appendChild(twScript);
-    }
-    
-    // Inject custom CSS variables and base rules
+    // NOTE: The Tailwind CDN injection code MUST BE REMOVED from the final product
+    // to comply with Manifest V3 CSP rules. For now, I'm keeping your style injection.
+
+    // --- Inject custom base styles ---
     if (!document.getElementById('acc-hub-base-styles')) {
         const style = document.createElement('style');
         style.id = 'acc-hub-base-styles';
         style.innerHTML = `
-            /* Define global CSS variables used by applyLogic */
+            /* --- Accessibility Hub Global Variables --- */
             :root {
-                --custom-font-scale: 1; 
+                --custom-font-scale: 1;
                 --custom-letter-spacing: 0px;
             }
-            /* Apply CSS variables to common elements for font size and spacing effects */
-            p, a, span, div, h1, h2, h3, h4, h5 {
-                font-size: calc(1em * var(--custom-font-scale, 1)); 
-                letter-spacing: var(--custom-letter-spacing, 0px);
-                transition: all 0.3s ease; /* Smooth transition for visual changes */
+
+            /* --- Tailwind-Compatible Font Scaling (Applies Font Size & Spacing) --- */
+            html {
+                font-size: calc(16px * var(--custom-font-scale, 1)) !important;
+                transition: font-size 0.25s ease-in-out;
+            }
+
+            /* --- Apply Letter Spacing to Common Text Elements --- */
+            p, a, span, div, h1, h2, h3, h4, h5, h6 {
+                letter-spacing: var(--custom-letter-spacing, 0px) !important;
+                transition: letter-spacing 0.25s ease-in-out;
+            }
+
+            /* --- Transition Filters (Brightness/Contrast/Dark Mode) --- */
+            body {
+                transition: filter 0.25s ease-in-out;
+            }
+
+            /* --- Dark Mode Exception: Prevents images and media from being inverted twice --- */
+            /* NOTE: This relies on the 'acc-hub-dark-mode' class being added to <body> */
+            body.acc-hub-dark-mode {
+                filter: none; /* Reset body filter to apply composition */
+            }
+
+            body.acc-hub-dark-mode img, 
+            body.acc-hub-dark-mode video {
+                filter: invert(100%) hue-rotate(180deg);
             }
         `;
-        // Use document.documentElement for styles that should be applied early
-        document.head.appendChild(style);
+
+        const target = document.head || document.documentElement;
+        if (target) {
+            target.appendChild(style);
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                (document.head || document.documentElement).appendChild(style);
+            });
+        }
     }
 };
 
@@ -96,14 +177,21 @@ const loadSettings = async (forceApply = false) => {
         currentSettings = ALL_FEATURES.map(defaultFeature => {
             const storedFeature = storedMap.get(defaultFeature.id);
             if (storedFeature) {
-                // Overwrite default actionValue with stored value
                 return { ...defaultFeature, ...storedFeature };
             }
             return defaultFeature;
         });
-    } else if (forceApply) {
-        // If storage is empty but we are forced to apply, use defaults.
-        currentSettings = ALL_FEATURES.map((f, i) => ({ ...f, order: i + 1, active: true, actionValue: f.actionValue || 100 }));
+    } else if (forceApply || !stored[STORAGE_KEY]) {
+        // If storage is empty or non-existent, initialize with defaults
+        currentSettings = ALL_FEATURES.map((f, i) => ({ 
+            ...f, 
+            order: i + 1, 
+            active: true, 
+            // Use the feature's default actionValue, or 100 if undefined
+            actionValue: f.actionValue === undefined ? 100 : f.actionValue
+        }));
+        // Store the initial default settings
+        await chrome.storage.sync.set({ [STORAGE_KEY]: currentSettings });
     }
 
     if (currentSettings.length > 0) {
@@ -112,28 +200,71 @@ const loadSettings = async (forceApply = false) => {
 };
 
 const applyAllSettings = () => {
-    // Reset global styles first before applying new ones
+    // --- 1. GLOBAL RESET ---
     document.documentElement.style.removeProperty('--custom-font-scale');
     document.documentElement.style.removeProperty('--custom-letter-spacing');
-    document.body.style.removeProperty('filter');
+    document.body.style.removeProperty('filter'); 
+    document.body.classList.remove('acc-hub-dark-mode'); 
 
-    // Apply active features by calling their specific applyLogic function
+    // --- 2. PREPARE FILTERS ---
+    // Start with the default filter values (Identity filters)
+    const filterStrings = [];
+
+    // --- 3. APPLY ACTIVE FEATURES ---
     const activeFeatures = currentSettings
         .filter(f => f.active)
         .sort((a, b) => a.order - b.order);
 
     activeFeatures.forEach(feature => {
         if (feature.applyLogic) {
-            feature.applyLogic(feature);
+            const result = feature.applyLogic(feature);
+            
+            // Collect filter strings (used by dark-mode, brightness, high-contrast)
+            if (typeof result === 'string' && result.trim() !== '') {
+                filterStrings.push(result);
+            }
+
+            // Special handling for Dark Mode to add a class for exceptions
+            if (feature.id === 'dark-mode' && feature.actionValue === true) {
+                 document.body.classList.add('acc-hub-dark-mode');
+            }
         }
     });
+
+    // --- 4. APPLY FINAL FILTERS ---
+    
+    // If Dark Mode is active, we apply the inverse filter to the body, 
+    // and let the CSS handle the image/media exception.
+    if (document.body.classList.contains('acc-hub-dark-mode')) {
+        // Find the invert filter from the collected strings
+        const darkModeFilter = filterStrings.find(f => f.includes('invert(100%)'));
+        
+        if (darkModeFilter) {
+            // Remove the dark mode filter from the main array so it's not applied twice
+            const index = filterStrings.indexOf(darkModeFilter);
+            filterStrings.splice(index, 1);
+            
+            // Apply the dark mode filter first to the body
+            document.body.style.filter = darkModeFilter;
+
+            // Now, apply the other filters (like brightness, contrast) to the body as well,
+            // using the existing filter value.
+            if (filterStrings.length > 0) {
+                 document.body.style.filter += ' ' + filterStrings.join(' ');
+            }
+        }
+    } 
+    // If Dark Mode is NOT active, or if it failed to find the filter, apply the rest normally.
+    else if (filterStrings.length > 0) {
+        document.body.style.filter = filterStrings.join(' ');
+    }
+    
+    // If no filter is needed, the style remains reset (document.body.style.filter = "")
 };
 
 // --- 3. MESSAGE LISTENER ---
-// Listens for messages from the popup (popup.js) whenever a setting is changed.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "APPLY_SETTINGS") {
-        // Reload settings from storage and apply them to the current page immediately
         loadSettings(true); 
     }
 });
@@ -141,9 +272,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // --- 4. INITIAL EXECUTION ---
 
-// Inject styles immediately (document_start)
 injectStyles(); 
-// Apply stored settings once the entire page content is loaded
 document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
 });
