@@ -1,939 +1,469 @@
-// ===========================
-// State Management
-// ===========================
-let currentSettings = {};
-let autoScrollInterval = null;
+// --- 1. CORE CONFIGURATION: MODULAR FEATURE DEFINITIONS ---
+// This configuration is repeated here so the popup can render tiles without cross-file dependencies.
+const ALL_FEATURES = [
+    {
+        id: 'font-size',
+        label: 'Text Size',
+        icon: 'A+', 
+        tailwindClass: 'col-span-1', 
+        type: 'action',
+        initialValue: 100, 
+        unit: '%',
+        
+        // The updated logic now includes communication with the webpage
+        actionLogic: (feature) => {
+            // 1. Update the internal data model (as before)
+            const nextScale = feature.actionValue >= 120 ? 100 : feature.actionValue + 10;
+            feature.actionValue = nextScale;
 
-// Default category visibility
-const defaultCategories = {
-    visual: true,
-    typography: true,
-    layout: true,
-    reading: true,
-    color: true,
-    animations: true,
-    productivity: true
+            // 2. 🌟 CRITICAL: Send the new value to the active content script 🌟
+            if (typeof chrome !== 'undefined' && chrome.tabs) {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (tabs.length > 0) {
+                        const activeTabId = tabs[0].id;
+                        
+                        // Send a message containing the new scale value
+                        chrome.tabs.sendMessage(activeTabId, {
+                            action: "APPLY_TEXT_SCALE", 
+                            value: feature.actionValue // e.g., 100, 110, or 120
+                        });
+                    }
+                });
+            }
+            // 3. Return the updated feature data for the popup UI
+            return feature;
+        }
+    },
+    
+    // 🌟 NEW FEATURE: DARK MODE
+    {
+        id: 'dark-mode',
+        label: 'Dark Mode',
+        icon: '🌙',
+        tailwindClass: 'col-span-0', 
+        type: 'toggle',
+        initialValue: false,
+        actionLogic: (feature) => {
+            feature.actionValue = !feature.actionValue;
+            return feature;
+        }
+    },
+    
+    // 🌟 NEW FEATURE: VOLUME MASTER
+    {
+        id: 'volume-master',
+        label: 'Volume Master',
+        icon: '🔊',
+        tailwindClass: 'col-span-1', 
+        type: 'slider', 
+        initialValue: 100, 
+        min: 0, // Volume starts at 0%
+        max: 200, // Allows for boosting volume up to 200%
+        unit: '%',
+        actionLogic: (feature) => feature // Sliders handle interaction internally
+    },
+
+    {
+        id: 'brightness',
+        label: 'Brightness',
+        icon: '☀️',
+        tailwindClass: 'col-span-2', 
+        type: 'slider', 
+        initialValue: 100, 
+        min: 20,
+        max: 100,
+        unit: '%',
+        actionLogic: (feature) => feature // Sliders handle interaction internally
+    },
+    {
+        id: 'high-contrast',
+        label: 'High Contrast',
+        icon: '⚫⚪',
+        tailwindClass: 'col-span-2', 
+        type: 'toggle',
+        initialValue: false,
+        actionLogic: (feature) => {
+            feature.actionValue = !feature.actionValue;
+            return feature;
+        }
+    },
+    {
+        id: 'letter-spacing',
+        label: 'Spacing',
+        icon: '↔',
+        tailwindClass: 'col-span-1',
+        type: 'action',
+        initialValue: 0, 
+        unit: 'px',
+        actionLogic: (feature) => {
+            const nextSpacing = feature.actionValue >= 2 ? 0 : feature.actionValue + 1;
+            feature.actionValue = nextSpacing;
+            return feature;
+        }
+    }
+    
+];
+
+// --- 2. SETUP & STATE MANAGEMENT (Local to Popup) ---
+
+const STORAGE_KEY = 'accessibilityHubSettings';
+let currentSettings = [];
+
+const loadSettings = async () => {
+    // 1. Load from storage
+    const stored = await chrome.storage.sync.get(STORAGE_KEY);
+    
+    if (stored[STORAGE_KEY] && stored[STORAGE_KEY].length) {
+        const storedMap = new Map(stored[STORAGE_KEY].map(f => [f.id, f]));
+        currentSettings = ALL_FEATURES.map(defaultFeature => {
+            const storedFeature = storedMap.get(defaultFeature.id);
+            if (storedFeature) {
+                // Ensure default min/max/unit are preserved for UI rendering
+                return { ...defaultFeature, ...storedFeature };
+            }
+            return defaultFeature;
+        });
+    } else {
+        // Use default configuration
+        currentSettings = ALL_FEATURES.map((f, i) => ({ ...f, order: i + 1, active: true, actionValue: f.initialValue }));
+        await saveSettings();
+    }
+    
+    // 2. Render the panel
+    renderPanel();
 };
 
-// ===========================
-// Initialization
-// ===========================
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadSettings();
-    initializeEventListeners();
-    initializeSettingsPanel();
-    loadCategoryVisibility();
-    updateToolCount();
-});
-
-// ===========================
-// Settings Management
-// ===========================
-async function loadSettings() {
-    try {
-        const result = await chrome.storage.local.get('toolkitSettings');
-        if (result.toolkitSettings) {
-            currentSettings = result.toolkitSettings;
-            applySettingsToUI();
-        }
-    } catch (error) {
-        console.error('Error loading settings:', error);
-    }
-}
-
-async function saveSettings() {
-    try {
-        await chrome.storage.local.set({ toolkitSettings: currentSettings });
-    } catch (error) {
-        console.error('Error saving settings:', error);
-    }
-}
-
-function applySettingsToUI() {
-    Object.keys(currentSettings).forEach(key => {
-        const element = document.getElementById(key);
-        if (element) {
-            if (element.type === 'checkbox') {
-                element.checked = currentSettings[key];
-            } else if (element.type === 'range') {
-                element.value = currentSettings[key];
-                updateValueDisplay(key, currentSettings[key]);
-            } else {
-                element.value = currentSettings[key];
-            }
-        }
-    });
-}
-
-// ===========================
-// Event Listeners
-// ===========================
-function initializeEventListeners() {
-    // Settings button
-    document.getElementById('settingsBtn').addEventListener('click', openSettings);
-    document.getElementById('closeSettings').addEventListener('click', closeSettings);
-    document.getElementById('saveSettings').addEventListener('click', saveCategorySettings);
-    document.getElementById('selectAllTools').addEventListener('click', selectAllCategories);
-    document.getElementById('deselectAllTools').addEventListener('click', deselectAllCategories);
-
-    // Category collapse
-    document.querySelectorAll('.category-header').forEach(header => {
-        header.addEventListener('click', (e) => {
-            const category = header.closest('.category');
-            category.classList.toggle('collapsed');
-        });
-    });
-
-    // Visual Effects
-    addToggleListener('darkMode', applyDarkMode);
-    addRangeListener('brightness', applyBrightness, '%');
-    addRangeListener('contrast', applyContrast, '%');
-    addRangeListener('saturation', applySaturation, '%');
-    addRangeListener('hueRotate', applyHueRotate, '°');
-    addRangeListener('blur', applyBlur, 'px');
-    addRangeListener('grayscale', applyGrayscale, '%');
-    addRangeListener('sepia', applySepia, '%');
-    addToggleListener('invert', applyInvert);
-    addRangeListener('opacity', applyOpacity, '%');
-
-    // Typography
-    addSelectListener('fontFamily', applyFontFamily);
-    addRangeListener('fontSize', applyFontSize, '%');
-    addRangeListener('lineHeight', applyLineHeight, '');
-    addRangeListener('letterSpacing', applyLetterSpacing, 'px');
-    addRangeListener('wordSpacing', applyWordSpacing, 'px');
-    addSelectListener('textTransform', applyTextTransform);
-    addRangeListener('fontWeight', applyFontWeight, '');
-    addSelectListener('textDecoration', applyTextDecoration);
-
-    // Layout & Display
-    addRangeListener('pageWidth', applyPageWidth, '%');
-    addRangeListener('pageZoom', applyPageZoom, '%');
-    addToggleListener('hideImages', applyHideImages);
-    addToggleListener('hideVideos', applyHideVideos);
-    addToggleListener('hideAds', applyHideAds);
-    addToggleListener('hidePopups', applyHidePopups);
-    addRangeListener('rotatePage', applyRotatePage, '°');
-    addToggleListener('flipHorizontal', applyFlipHorizontal);
-    addToggleListener('flipVertical', applyFlipVertical);
-    addToggleListener('fullWidth', applyFullWidth);
-
-    // Reading & Focus
-    addToggleListener('readingMode', applyReadingMode);
-    addToggleListener('focusMode', applyFocusMode);
-    addToggleListener('highlightLinks', applyHighlightLinks);
-    addToggleListener('dyslexiaFont', applyDyslexiaFont);
-    addSelectListener('textAlign', applyTextAlign);
-    addSelectListener('cursorStyle', applyCursorStyle);
-    addRangeListener('paragraphSpacing', applyParagraphSpacing, 'px');
-    addToggleListener('textShadow', applyTextShadow);
-
-    // Color & Theme
-    addColorListener('bgColor', applyBgColor);
-    addColorListener('textColor', applyTextColor);
-    addColorListener('linkColor', applyLinkColor);
-    addSelectListener('presetTheme', applyPresetTheme);
-    addToggleListener('borderHighlight', applyBorderHighlight);
-    addRangeListener('colorTemp', applyColorTemp, '');
-
-    // Animations & Effects
-    addToggleListener('disableAnimations', applyDisableAnimations);
-    addToggleListener('smoothScroll', applySmoothScroll);
-    addToggleListener('pageTransition', applyPageTransition);
-    addToggleListener('shadowEffects', applyShadowEffects);
-    addToggleListener('hoverZoom', applyHoverZoom);
-    addToggleListener('parallax', applyParallax);
-
-    // Productivity
-    addToggleListener('autoScroll', applyAutoScroll);
-    addRangeListener('scrollSpeed', () => {}, '');
-    document.getElementById('screenshotBtn').addEventListener('click', takeScreenshot);
-    addToggleListener('printFriendly', applyPrintFriendly);
-    document.getElementById('wordCountBtn').addEventListener('click', countWords);
-    document.getElementById('copyTextBtn').addEventListener('click', copyAllText);
-    document.getElementById('selectAllBtn').addEventListener('click', selectAllText);
-    document.getElementById('translateBtn').addEventListener('click', translatePage);
-
-    // Color reset buttons
-    document.querySelectorAll('.btn-reset').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const targetId = e.target.dataset.reset;
-            resetColorInput(targetId);
-        });
-    });
-
-    // Quick Actions
-    document.getElementById('resetAll').addEventListener('click', resetAllSettings);
-    document.getElementById('savePreset').addEventListener('click', savePreset);
-    document.getElementById('loadPreset').addEventListener('click', loadPreset);
-}
-
-// ===========================
-// Helper Functions for Event Listeners
-// ===========================
-function addToggleListener(id, callback) {
-    const element = document.getElementById(id);
-    if (element) {
-        element.addEventListener('change', (e) => {
-            console.log(`Toggle ${id}:`, e.target.checked);
-            currentSettings[id] = e.target.checked;
-            callback(e.target.checked);
-            saveSettings();
-        });
-    } else {
-        console.warn(`Element not found: ${id}`);
-    }
-}
-
-function addRangeListener(id, callback, unit) {
-    const element = document.getElementById(id);
-    if (element) {
-        element.addEventListener('input', (e) => {
-            const value = e.target.value;
-            console.log(`Range ${id}:`, value);
-            currentSettings[id] = value;
-            updateValueDisplay(id, value, unit);
-            callback(value);
-            saveSettings();
-        });
-    } else {
-        console.warn(`Element not found: ${id}`);
-    }
-}
-
-function addSelectListener(id, callback) {
-    const element = document.getElementById(id);
-    if (element) {
-        element.addEventListener('change', (e) => {
-            currentSettings[id] = e.target.value;
-            callback(e.target.value);
-            saveSettings();
-        });
-    }
-}
-
-function addColorListener(id, callback) {
-    const element = document.getElementById(id);
-    if (element) {
-        element.addEventListener('change', (e) => {
-            currentSettings[id] = e.target.value;
-            callback(e.target.value);
-            saveSettings();
-        });
-    }
-}
-
-function updateValueDisplay(id, value, unit = '') {
-    const display = document.getElementById(`${id}Value`);
-    if (display) {
-        display.textContent = value + unit;
-    }
-}
-
-// ===========================
-// Apply Functions - Visual Effects
-// ===========================
-async function applyDarkMode(enabled) {
-    await executeInActiveTab({
-        action: 'darkMode',
-        enabled: enabled
-    });
-}
-
-async function applyBrightness(value) {
-    await executeInActiveTab({
-        action: 'brightness',
-        value: value
-    });
-}
-
-async function applyContrast(value) {
-    await executeInActiveTab({
-        action: 'contrast',
-        value: value
-    });
-}
-
-async function applySaturation(value) {
-    await executeInActiveTab({
-        action: 'saturation',
-        value: value
-    });
-}
-
-async function applyHueRotate(value) {
-    await executeInActiveTab({
-        action: 'hueRotate',
-        value: value
-    });
-}
-
-async function applyBlur(value) {
-    await executeInActiveTab({
-        action: 'blur',
-        value: value
-    });
-}
-
-async function applyGrayscale(value) {
-    await executeInActiveTab({
-        action: 'grayscale',
-        value: value
-    });
-}
-
-async function applySepia(value) {
-    await executeInActiveTab({
-        action: 'sepia',
-        value: value
-    });
-}
-
-async function applyInvert(enabled) {
-    await executeInActiveTab({
-        action: 'invert',
-        enabled: enabled
-    });
-}
-
-async function applyOpacity(value) {
-    await executeInActiveTab({
-        action: 'opacity',
-        value: value
-    });
-}
-
-// ===========================
-// Apply Functions - Typography
-// ===========================
-async function applyFontFamily(value) {
-    await executeInActiveTab({
-        action: 'fontFamily',
-        value: value
-    });
-}
-
-async function applyFontSize(value) {
-    await executeInActiveTab({
-        action: 'fontSize',
-        value: value
-    });
-}
-
-async function applyLineHeight(value) {
-    await executeInActiveTab({
-        action: 'lineHeight',
-        value: value
-    });
-}
-
-async function applyLetterSpacing(value) {
-    await executeInActiveTab({
-        action: 'letterSpacing',
-        value: value
-    });
-}
-
-async function applyWordSpacing(value) {
-    await executeInActiveTab({
-        action: 'wordSpacing',
-        value: value
-    });
-}
-
-async function applyTextTransform(value) {
-    await executeInActiveTab({
-        action: 'textTransform',
-        value: value
-    });
-}
-
-async function applyFontWeight(value) {
-    await executeInActiveTab({
-        action: 'fontWeight',
-        value: value
-    });
-}
-
-async function applyTextDecoration(value) {
-    await executeInActiveTab({
-        action: 'textDecoration',
-        value: value
-    });
-}
-
-// ===========================
-// Apply Functions - Layout & Display
-// ===========================
-async function applyPageWidth(value) {
-    await executeInActiveTab({
-        action: 'pageWidth',
-        value: value
-    });
-}
-
-async function applyPageZoom(value) {
-    await executeInActiveTab({
-        action: 'pageZoom',
-        value: value
-    });
-}
-
-async function applyHideImages(enabled) {
-    await executeInActiveTab({
-        action: 'hideImages',
-        enabled: enabled
-    });
-}
-
-async function applyHideVideos(enabled) {
-    await executeInActiveTab({
-        action: 'hideVideos',
-        enabled: enabled
-    });
-}
-
-async function applyHideAds(enabled) {
-    await executeInActiveTab({
-        action: 'hideAds',
-        enabled: enabled
-    });
-}
-
-async function applyHidePopups(enabled) {
-    await executeInActiveTab({
-        action: 'hidePopups',
-        enabled: enabled
-    });
-}
-
-async function applyRotatePage(value) {
-    await executeInActiveTab({
-        action: 'rotatePage',
-        value: value
-    });
-}
-
-async function applyFlipHorizontal(enabled) {
-    await executeInActiveTab({
-        action: 'flipHorizontal',
-        enabled: enabled
-    });
-}
-
-async function applyFlipVertical(enabled) {
-    await executeInActiveTab({
-        action: 'flipVertical',
-        enabled: enabled
-    });
-}
-
-async function applyFullWidth(enabled) {
-    await executeInActiveTab({
-        action: 'fullWidth',
-        enabled: enabled
-    });
-}
-
-// ===========================
-// Apply Functions - Reading & Focus
-// ===========================
-async function applyReadingMode(enabled) {
-    await executeInActiveTab({
-        action: 'readingMode',
-        enabled: enabled
-    });
-}
-
-async function applyFocusMode(enabled) {
-    await executeInActiveTab({
-        action: 'focusMode',
-        enabled: enabled
-    });
-}
-
-async function applyHighlightLinks(enabled) {
-    await executeInActiveTab({
-        action: 'highlightLinks',
-        enabled: enabled
-    });
-}
-
-async function applyDyslexiaFont(enabled) {
-    await executeInActiveTab({
-        action: 'dyslexiaFont',
-        enabled: enabled
-    });
-}
-
-async function applyTextAlign(value) {
-    await executeInActiveTab({
-        action: 'textAlign',
-        value: value
-    });
-}
-
-async function applyCursorStyle(value) {
-    await executeInActiveTab({
-        action: 'cursorStyle',
-        value: value
-    });
-}
-
-async function applyParagraphSpacing(value) {
-    await executeInActiveTab({
-        action: 'paragraphSpacing',
-        value: value
-    });
-}
-
-async function applyTextShadow(enabled) {
-    await executeInActiveTab({
-        action: 'textShadow',
-        enabled: enabled
-    });
-}
-
-// ===========================
-// Apply Functions - Color & Theme
-// ===========================
-async function applyBgColor(value) {
-    await executeInActiveTab({
-        action: 'bgColor',
-        value: value
-    });
-}
-
-async function applyTextColor(value) {
-    await executeInActiveTab({
-        action: 'textColor',
-        value: value
-    });
-}
-
-async function applyLinkColor(value) {
-    await executeInActiveTab({
-        action: 'linkColor',
-        value: value
-    });
-}
-
-async function applyPresetTheme(value) {
-    await executeInActiveTab({
-        action: 'presetTheme',
-        value: value
-    });
-}
-
-async function applyBorderHighlight(enabled) {
-    await executeInActiveTab({
-        action: 'borderHighlight',
-        enabled: enabled
-    });
-}
-
-async function applyColorTemp(value) {
-    await executeInActiveTab({
-        action: 'colorTemp',
-        value: value
-    });
-}
-
-// ===========================
-// Apply Functions - Animations & Effects
-// ===========================
-async function applyDisableAnimations(enabled) {
-    await executeInActiveTab({
-        action: 'disableAnimations',
-        enabled: enabled
-    });
-}
-
-async function applySmoothScroll(enabled) {
-    await executeInActiveTab({
-        action: 'smoothScroll',
-        enabled: enabled
-    });
-}
-
-async function applyPageTransition(enabled) {
-    await executeInActiveTab({
-        action: 'pageTransition',
-        enabled: enabled
-    });
-}
-
-async function applyShadowEffects(enabled) {
-    await executeInActiveTab({
-        action: 'shadowEffects',
-        enabled: enabled
-    });
-}
-
-async function applyHoverZoom(enabled) {
-    await executeInActiveTab({
-        action: 'hoverZoom',
-        enabled: enabled
-    });
-}
-
-async function applyParallax(enabled) {
-    await executeInActiveTab({
-        action: 'parallax',
-        enabled: enabled
-    });
-}
-
-// ===========================
-// Apply Functions - Productivity
-// ===========================
-async function applyAutoScroll(enabled) {
-    await executeInActiveTab({
-        action: 'autoScroll',
-        enabled: enabled,
-        speed: document.getElementById('scrollSpeed').value
-    });
-}
-
-async function takeScreenshot() {
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        const dataUrl = await chrome.tabs.captureVisibleTab();
-        
-        // Download the screenshot
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = `screenshot-${Date.now()}.png`;
-        link.click();
-        
-        showNotification('Screenshot captured!');
-    } catch (error) {
-        console.error('Screenshot error:', error);
-        showNotification('Screenshot failed', 'error');
-    }
-}
-
-async function applyPrintFriendly(enabled) {
-    await executeInActiveTab({
-        action: 'printFriendly',
-        enabled: enabled
-    });
-}
-
-async function countWords() {
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        const result = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => {
-                const text = document.body.innerText;
-                const words = text.trim().split(/\s+/).length;
-                const chars = text.length;
-                return { words, chars };
-            }
-        });
-        
-        if (result[0]?.result) {
-            const { words, chars } = result[0].result;
-            showNotification(`Words: ${words} | Characters: ${chars}`);
-        }
-    } catch (error) {
-        console.error('Word count error:', error);
-    }
-}
-
-async function copyAllText() {
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => {
-                const text = document.body.innerText;
-                navigator.clipboard.writeText(text);
-            }
-        });
-        showNotification('Text copied to clipboard!');
-    } catch (error) {
-        console.error('Copy error:', error);
-    }
-}
-
-async function selectAllText() {
-    await executeInActiveTab({
-        action: 'selectAll'
-    });
-}
-
-async function translatePage() {
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        const translateUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(tab.url)}`;
-        await chrome.tabs.create({ url: translateUrl });
-    } catch (error) {
-        console.error('Translate error:', error);
-    }
-}
-
-// ===========================
-// Color Reset
-// ===========================
-function resetColorInput(id) {
-    const defaults = {
-        bgColor: '#ffffff',
-        textColor: '#000000',
-        linkColor: '#0000ff'
-    };
+const saveSettings = async (shouldClose = false) => {
+    // Only save the dynamic parts of the feature (active, order, actionValue)
+    const savableSettings = currentSettings.map(f => ({
+        id: f.id,
+        active: f.active,
+        order: f.order,
+        actionValue: f.actionValue
+    }));
+
+    await chrome.storage.sync.set({ [STORAGE_KEY]: savableSettings });
     
-    const element = document.getElementById(id);
-    if (element && defaults[id]) {
-        element.value = defaults[id];
-        currentSettings[id] = defaults[id];
-        
-        if (id === 'bgColor') applyBgColor(defaults[id]);
-        if (id === 'textColor') applyTextColor(defaults[id]);
-        if (id === 'linkColor') applyLinkColor(defaults[id]);
-        
-        saveSettings();
-    }
-}
-
-// ===========================
-// Quick Actions
-// ===========================
-async function resetAllSettings() {
-    if (confirm('Reset all settings to default? This will refresh the page.')) {
-        currentSettings = {};
-        await chrome.storage.local.clear();
-        
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        await chrome.tabs.reload(tab.id);
-        
-        window.location.reload();
-    }
-}
-
-async function savePreset() {
-    const presetName = prompt('Enter a name for this preset:');
-    if (presetName) {
-        try {
-            const presets = await chrome.storage.local.get('savedPresets') || {};
-            const savedPresets = presets.savedPresets || {};
-            savedPresets[presetName] = currentSettings;
-            
-            await chrome.storage.local.set({ savedPresets });
-            showNotification(`Preset "${presetName}" saved!`);
-        } catch (error) {
-            console.error('Save preset error:', error);
+    // Send a message to the active tab's content script to tell it to re-apply the new settings immediately.
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        if (tabs[0] && tabs[0].id) {
+            chrome.tabs.sendMessage(tabs[0].id, { action: "APPLY_SETTINGS" });
         }
-    }
-}
+    });
+    
+    // Re-render the panel UI in the popup
+    renderPanel();
 
-async function loadPreset() {
-    try {
-        const presets = await chrome.storage.local.get('savedPresets');
-        const savedPresets = presets.savedPresets || {};
-        const presetNames = Object.keys(savedPresets);
-        
-        if (presetNames.length === 0) {
-            showNotification('No saved presets found', 'error');
-            return;
+    if (shouldClose) {
+        // Close the popup after a save operation in the edit modal
+        window.close();
+    }
+};
+
+// --- 3. UI RENDERING (Popup) ---
+
+// --- 3. UI RENDERING (Popup) ---
+
+const renderPanel = () => {
+    const panel = document.getElementById('accessibility-hub-panel');
+    const editModal = document.getElementById('accessibility-hub-edit-modal');
+    
+    // Ensure we are in the main panel view
+    editModal.classList.add('hidden');
+    panel.classList.remove('hidden');
+
+    panel.innerHTML = ''; // Clear previous content
+
+    const activeFeatures = currentSettings
+        .filter(f => f.active)
+        .sort((a, b) => a.order - b.order);
+
+    // 1. Grid container for tiles
+    const gridContainer = document.createElement('div');
+    gridContainer.className = 'grid grid-cols-4 gap-2 mb-2';
+    panel.appendChild(gridContainer);
+    
+    activeFeatures.forEach(feature => {
+        // Correctly handle display for various types
+        let valueDisplay;
+        if (feature.type === 'toggle') {
+            valueDisplay = feature.actionValue ? 'ON' : 'OFF';
+        } else if (feature.type === 'slider') {
+            // For sliders, display the current value
+            valueDisplay = feature.actionValue > 100 && feature.id === 'volume-master' ? 
+                           `+${feature.actionValue - 100}${feature.unit} BOOST` :
+                           `${feature.actionValue}${feature.unit}`;
+        } else {
+            valueDisplay = `${feature.actionValue}${feature.unit}`;
         }
+
+        const tile = document.createElement('div');
+        // NOTE: Sliders should not have cursor-pointer or hover effects on the entire tile
+        // to avoid interfering with the range input.
+        tile.className = `acc-tile ${feature.tailwindClass} p-2 bg-white border border-gray-200 rounded-lg text-center shadow-sm relative group`;
+        tile.dataset.id = feature.id;
+        tile.dataset.type = feature.type;
+        tile.title = feature.label;
         
-        const presetName = prompt(`Available presets:\n${presetNames.join('\n')}\n\nEnter preset name to load:`);
-        if (presetName && savedPresets[presetName]) {
-            currentSettings = savedPresets[presetName];
-            applySettingsToUI();
-            await saveSettings();
-            
-            // Apply all settings
-            Object.keys(currentSettings).forEach(key => {
-                const element = document.getElementById(key);
-                if (element) {
-                    element.dispatchEvent(new Event('change'));
-                }
+        let tileContent;
+
+        if (feature.type === 'slider') {
+            // SLIDER TILE CONTENT: Includes the range input
+            tileContent = `
+                <span class="text-xl font-bold block text-blue-600">${feature.icon}</span>
+                <span class="text-xs font-semibold text-gray-700 block mt-1 leading-none">${feature.label}</span>
+                <input 
+                    type="range" 
+                    id="slider-${feature.id}" 
+                    min="${feature.min}" 
+                    max="${feature.max}" 
+                    value="${feature.actionValue}"
+                    class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer range-sm my-1"
+                >
+                <span id="display-${feature.id}" class="text-[10px] text-gray-500 block leading-none mt-0.5 font-bold">${valueDisplay}</span>
+            `;
+            tile.innerHTML = tileContent;
+
+            // Attach slider input listeners
+            const sliderInput = tile.querySelector(`#slider-${feature.id}`);
+            const displaySpan = tile.querySelector(`#display-${feature.id}`);
+
+            sliderInput.addEventListener('input', (e) => {
+                // Update display immediately on input (no saving yet)
+                const newValue = parseInt(e.target.value);
+                const newDisplay = newValue > 100 && feature.id === 'volume-master' ? 
+                                 `+${newValue - 100}${feature.unit} BOOST` :
+                                 `${newValue}${feature.unit}`;
+                displaySpan.textContent = newDisplay;
+                
+                // Update settings object (in memory)
+                const index = currentSettings.findIndex(f => f.id === feature.id);
+                currentSettings[index].actionValue = newValue;
             });
             
-            showNotification(`Preset "${presetName}" loaded!`);
-        }
-    } catch (error) {
-        console.error('Load preset error:', error);
-    }
-}
+            sliderInput.addEventListener('change', () => {
+                // Only save/apply settings once the slider is released
+                saveSettings();
+            });
 
-// ===========================
-// Settings Panel
-// ===========================
-function initializeSettingsPanel() {
-    const settingsOptions = document.getElementById('settingsOptions');
-    const categories = [
-        { id: 'visual', name: '🎨 Visual Effects', icon: '🎨' },
-        { id: 'typography', name: '📝 Typography', icon: '📝' },
-        { id: 'layout', name: '📐 Layout & Display', icon: '📐' },
-        { id: 'reading', name: '📖 Reading & Focus', icon: '📖' },
-        { id: 'color', name: '🎨 Colors & Theme', icon: '🎨' },
-        { id: 'animations', name: '✨ Animations & Effects', icon: '✨' },
-        { id: 'productivity', name: '⚡ Productivity', icon: '⚡' }
-    ];
-    
-    categories.forEach(cat => {
-        const item = document.createElement('div');
-        item.className = 'setting-item';
-        item.innerHTML = `
-            <span class="setting-label">
-                <span>${cat.icon}</span>
-                <span>${cat.name}</span>
-            </span>
-            <label class="toggle-switch">
-                <input type="checkbox" data-category="${cat.id}" checked>
-                <span class="toggle-slider"></span>
-            </label>
-        `;
-        settingsOptions.appendChild(item);
-    });
-}
-
-function openSettings() {
-    document.getElementById('settingsPanel').classList.add('active');
-}
-
-function closeSettings() {
-    document.getElementById('settingsPanel').classList.remove('active');
-}
-
-async function saveCategorySettings() {
-    const checkboxes = document.querySelectorAll('[data-category]');
-    const visibility = {};
-    
-    checkboxes.forEach(cb => {
-        visibility[cb.dataset.category] = cb.checked;
-    });
-    
-    await chrome.storage.local.set({ categoryVisibility: visibility });
-    applyCategoryVisibility(visibility);
-    closeSettings();
-    showNotification('Settings saved!');
-}
-
-function selectAllCategories() {
-    document.querySelectorAll('[data-category]').forEach(cb => {
-        cb.checked = true;
-    });
-}
-
-function deselectAllCategories() {
-    document.querySelectorAll('[data-category]').forEach(cb => {
-        cb.checked = false;
-    });
-}
-
-async function loadCategoryVisibility() {
-    try {
-        const result = await chrome.storage.local.get('categoryVisibility');
-        const visibility = result.categoryVisibility || defaultCategories;
-        applyCategoryVisibility(visibility);
-        
-        // Update checkboxes
-        Object.keys(visibility).forEach(cat => {
-            const checkbox = document.querySelector(`[data-category="${cat}"]`);
-            if (checkbox) {
-                checkbox.checked = visibility[cat];
-            }
-        });
-    } catch (error) {
-        console.error('Load visibility error:', error);
-    }
-}
-
-function applyCategoryVisibility(visibility) {
-    Object.keys(visibility).forEach(cat => {
-        const category = document.querySelector(`[data-category="${cat}"]`)?.closest('.category') || 
-                        document.querySelector(`.category[data-category="${cat}"]`);
-        if (category) {
-            if (visibility[cat]) {
-                category.classList.remove('hidden');
-            } else {
-                category.classList.add('hidden');
-            }
-        }
-    });
-    updateToolCount();
-}
-
-function updateToolCount() {
-    const visibleCategories = document.querySelectorAll('.category:not(.hidden)');
-    let totalTools = 0;
-    visibleCategories.forEach(cat => {
-        totalTools += cat.querySelectorAll('.tool-card').length;
-    });
-    document.getElementById('toolCount').textContent = `${totalTools}+`;
-}
-
-// ===========================
-// Execute in Active Tab
-// ===========================
-async function executeInActiveTab(message) {
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        console.log('Sending message:', message, 'to tab:', tab.id);
-        
-        // Check if it's a chrome:// or extension page
-        if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
-            showNotification('Cannot modify Chrome system pages', 'error');
-            return;
+        } else {
+            // ACTION/TOGGLE TILE CONTENT: (Original format)
+            tileContent = `
+                <span class="text-xl font-bold block text-blue-600">${feature.icon}</span>
+                <span class="text-xs font-semibold text-gray-700 block mt-1 leading-none">${feature.label}</span>
+                <span class="text-[10px] text-gray-500 block leading-none mt-0.5">${valueDisplay}</span>
+            `;
+            tile.innerHTML = tileContent;
+            
+            // Re-add interactive classes for action/toggle tiles
+            tile.classList.add('cursor-pointer', 'hover:bg-blue-50');
+            
+            // Attach feature interaction listener for 'action' and 'toggle' types
+            tile.addEventListener('click', (e) => handleFeatureAction(e.currentTarget.dataset.id));
         }
         
-        // Try to send message
-        try {
-            const response = await chrome.tabs.sendMessage(tab.id, message);
-            console.log('Message sent successfully:', response);
-        } catch (error) {
-            // Content script not loaded, try to inject it
-            console.log('Content script not loaded, injecting...');
-            try {
-                await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    files: ['content.js']
-                });
-                
-                // Wait for script to initialize
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                // Try sending message again
-                const response = await chrome.tabs.sendMessage(tab.id, message);
-                console.log('Message sent after injection:', response);
-            } catch (injectError) {
-                console.error('Injection failed:', injectError);
-                showNotification('Please refresh the page and try again', 'error');
-            }
-        }
-    } catch (error) {
-        console.error('Execute error:', error);
-    }
-}
+        gridContainer.appendChild(tile);
+    });
+    
+    // 2. Edit Button Section
+    const editButton = document.createElement('div');
+    editButton.id = 'panel-edit-button';
+    editButton.className = 'text-center pt-2 border-t border-gray-100 cursor-pointer text-blue-600 font-medium text-sm hover:text-blue-800 transition';
+    editButton.textContent = 'Edit Tiles';
+    panel.appendChild(editButton);
+    
+    // Attach edit button listener
+    editButton.addEventListener('click', renderEditModal);
+};
 
-// ===========================
-// Notifications
-// ===========================
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#10b981' : '#ef4444'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 10000;
-        font-weight: 600;
-        animation: slideIn 0.3s ease;
+// You should also remove the now-unused handleSliderView function from your popup.js
+// if it still exists.
+
+// --- 4. TILE INTERACTION HANDLER ---
+
+const handleFeatureAction = (featureId) => {
+    const featureIndex = currentSettings.findIndex(f => f.id === featureId);
+    if (featureIndex === -1) return;
+
+    let feature = currentSettings[featureIndex];
+
+    if (feature.actionLogic) {
+        feature = feature.actionLogic(feature); 
+    }
+    
+    currentSettings[featureIndex] = feature;
+    saveSettings(); 
+};
+
+// Placeholder function for handling slider view/interaction
+const handleSliderView = (featureId) => {
+    const feature = currentSettings.find(f => f.id === featureId);
+    if (!feature) return;
+
+    // You would typically render an overlay with the slider here.
+    alert(`Opening slider control for: ${feature.label} (Current Value: ${feature.actionValue}${feature.unit})`);
+    
+    // The interaction logic (changing feature.actionValue) would happen in the 
+    // slider's input event handler, followed by saveSettings().
+};
+
+
+// --- 5. CUSTOMIZATION VIEW (Edit Modal) ---
+// (No changes needed in this section, as it relies on the ALL_FEATURES structure)
+
+const renderEditModal = () => {
+    const modal = document.getElementById('accessibility-hub-edit-modal');
+    const panel = document.getElementById('accessibility-hub-panel');
+    
+    // Switch to modal view
+    panel.classList.add('hidden');
+    modal.classList.remove('hidden');
+
+    const activeTiles = currentSettings
+        .filter(f => f.active)
+        .sort((a, b) => a.order - b.order);
+
+    const unusedTiles = currentSettings
+        .filter(f => !f.active)
+        .sort((a, b) => a.order - b.order);
+    
+    const maxActiveOrder = activeTiles.length > 0 ? activeTiles[activeTiles.length - 1].order : 0;
+
+    let html = `
+        <div class="edit-content bg-white p-6 md:p-8 rounded-xl w-full max-w-full shadow-2xl space-y-4">
+            <h2 class="text-2xl font-bold text-gray-800 border-b pb-2">Customize Control Center</h2>
+            <p class="text-sm text-gray-500">Drag tiles to reorder them in the panel. Use the buttons to add or remove features.</p>
+            
+            <div class="space-y-3">
+                <h3 class="text-lg font-semibold text-blue-600">Active Tiles (Your Panel)</h3>
+                <div id="active-tiles-grid" 
+                    class="w-100 tile-grid grid grid-cols-2 gap-2 bg-gray-100 p-3 rounded-lg min-h-[100px]" 
+                    ondragover="event.preventDefault();"
+                >
+                    ${activeTiles.map(tileToEditHTML).join('')}
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <h3 class="text-lg font-semibold text-gray-600">Available Tiles</h3>
+                <div id="unused-tiles-list" class="tile-list flex flex-wrap gap-2 bg-gray-50 p-3 rounded-lg">
+                    ${unusedTiles.map(tileToEditHTML).join('')}
+                </div>
+            </div>
+            
+            <button id="close-edit-modal" class="w-full py-2 bg-green-500 text-white font-bold rounded-lg shadow-md hover:bg-green-600 transition duration-150">Done & Close</button>
+        </div>
     `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
+    modal.innerHTML = html;
     
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
+    // --- Attach Listeners ---
+    modal.querySelector('#close-edit-modal').addEventListener('click', handleSaveAndCloseEdit);
+    
+    modal.querySelectorAll('.edit-button').forEach(btn => {
+        btn.addEventListener('click', (e) => handleEditToggle(e, maxActiveOrder));
+    });
+
+    // Simple Drag/Drop implementation for reordering (within Active Tiles)
+    const activeGrid = modal.querySelector('#active-tiles-grid');
+    let dragSrcEl = null;
+
+    const handleDragStart = (e) => {
+        e.target.classList.add('opacity-40');
+        dragSrcEl = e.target;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', e.target.dataset.id);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault(); 
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    };
+
+    const handleDrop = (e) => {
+        e.stopPropagation();
+        const dropTarget = e.target.closest('.edit-tile');
+        if (dragSrcEl !== dropTarget && dropTarget) {
+            const dragId = dragSrcEl.dataset.id;
+            const dropId = dropTarget.dataset.id;
+            
+            const dragIndex = currentSettings.findIndex(f => f.id === dragId);
+            const dropIndex = currentSettings.findIndex(f => f.id === dropId);
+            
+            // Swap orders
+            const tempOrder = currentSettings[dragIndex].order;
+            currentSettings[dragIndex].order = currentSettings[dropIndex].order;
+            currentSettings[dropIndex].order = tempOrder;
+
+            renderEditModal(); // Re-render to show new order
+        }
+        return false;
+    };
+
+    const handleDragEnd = (e) => {
+        e.target.classList.remove('opacity-40');
+    };
+
+    activeGrid.querySelectorAll('.edit-tile').forEach(tile => {
+        tile.addEventListener('dragstart', handleDragStart);
+        tile.addEventListener('dragover', handleDragOver);
+        tile.addEventListener('drop', handleDrop);
+        tile.addEventListener('dragend', handleDragEnd);
+    });
+
+};
+
+const tileToEditHTML = (feature) => {
+    const isRemove = feature.active;
+    const buttonClass = isRemove ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600';
+    
+    // Apply grid space class for active tiles to match panel
+    const tileClasses = isRemove ? `${feature.tailwindClass} p-2` : 'p-2';
+
+    return `
+        <div class="edit-tile ${tileClasses} bg-white border border-gray-300 rounded-lg flex items-center justify-between text-sm shadow-sm" data-id="${feature.id}" draggable="${isRemove}">
+            <div class="flex items-center space-x-2">
+                <span class="text-lg font-semibold text-blue-600">${feature.icon}</span>
+                <span class="font-medium text-gray-800">${feature.label}</span>
+            </div>
+            <button class="edit-button ${buttonClass} text-white font-bold rounded-full w-6 h-6 flex items-center justify-center transition duration-150" data-id="${feature.id}" data-action="${isRemove ? 'remove' : 'add'}">
+                ${isRemove ? '−' : '+'}
+            </button>
+        </div>
+    `;
+};
+
+const handleEditToggle = (e, maxActiveOrder) => {
+    const id = e.currentTarget.dataset.id;
+    const action = e.currentTarget.dataset.action;
+    const index = currentSettings.findIndex(f => f.id === id);
+
+    if (index === -1) return;
+
+    if (action === 'add') {
+        currentSettings[index].active = true;
+        currentSettings[index].order = maxActiveOrder + 1;
+    } else if (action === 'remove') {
+        currentSettings[index].active = false;
+        currentSettings[index].order = 999; 
+    }
+    
+    // Re-render the edit modal immediately after a change
+    renderEditModal(); 
+};
+
+const handleSaveAndCloseEdit = () => {
+    // 1. Re-normalize the 'order' field for all active tiles
+    const active = currentSettings
+        .filter(f => f.active)
+        .sort((a, b) => a.order - b.order);
+
+    active.forEach((f, i) => f.order = i + 1); 
+    
+    // Pass 'true' to indicate the popup should close after saving
+    saveSettings(true); 
+};
+
+
+// --- 6. INITIAL EXECUTION ---
+document.addEventListener('DOMContentLoaded', loadSettings);
