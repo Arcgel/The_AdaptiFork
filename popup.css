@@ -61,8 +61,8 @@ body {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     color: var(--text-primary);
     line-height: 1.6;
-    min-width: 470px;
-    max-width: 470px;
+    min-width: 420px;
+    max-width: 420px;
     overflow-x: hidden;
 }
 
