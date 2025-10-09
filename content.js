@@ -1,278 +1,853 @@
-// --- 1. CORE CONFIGURATION: MODULAR FEATURE DEFINITIONS ---
-const ALL_FEATURES = [
-    {
-        id: 'font-size-px',
-        label: 'Text Size',
-        icon: 'A+',
-        // actionValue will now hold the desired font size in pixels (e.g., 16 = normal)
-        actionValue: 16, // Default to normal size (16px)
-        
-        // actionLogic should be updated to return the selected pixel value, 
-        // assuming it comes from a radio button group.
-        // For this example, we keep it simple, but in a real UI, this would handle the radio input change.
-        actionLogic: (feature) => feature, 
+// ===========================
+// Content Script - Applies modifications to web pages
+// ===========================
 
-        applyLogic: (feature) => {
-            // Get the pixel value directly from actionValue
-            const fontSizePx = feature.actionValue; 
+// Create style element for dynamic CSS
+let styleElement;
 
-            // Apply the chosen pixel value directly to the root element's font-size
-            document.documentElement.style.setProperty(
-                'font-size',
-                `${fontSizePx}px` // Set the font size using the pixel value
-            );
-
-            // Optionally, remove the scaling variable if it's no longer used
-            document.documentElement.style.removeProperty('--custom-font-scale'); 
-        }
-    },
-
-    // 🌟 NEW FEATURE: DARK MODE
-    {
-        id: 'dark-mode',
-        label: 'Dark Mode',
-        icon: '🌙',
-        actionValue: false, // Boolean: true/false
-        actionLogic: (feature) => feature,
-        applyLogic: (feature) => {
-            if (feature.actionValue) {
-                // Returns the filter string for combination
-                return 'invert(100%) hue-rotate(180deg)';
-            }
-            return ''; 
-        }
-    },
-    
-    // 🌟 NEW FEATURE: MEDIA VOLUME CONTROL (FIXED)
-    {
-        id: 'volume-master',
-        label: 'Volume Master',
-        icon: '🔊',
-        actionValue: 100, // Percentage (0 to 100)
-        actionLogic: (feature) => feature,
-        applyLogic: (feature) => {
-            // Volume is not a CSS property, so we handle it outside the filter chain.
-            const volume = feature.actionValue / 100; 
-
-            const applyVolume = (media) => {
-                 // Volume property maxes out at 1.0 (100%). We can only *boost* up to 1.0.
-                 // The system volume control is a facade.
-                 media.volume = Math.min(1.0, Math.max(0.0, volume));
-            };
-            
-            // Apply to existing media elements
-            document.querySelectorAll('audio, video').forEach(applyVolume);
-
-            // Optional: If you want to handle dynamically added media elements,
-            // you'd typically use a MutationObserver here, but for simplicity
-            // we rely on the extension reloading settings when the popup closes.
-        }
-    },
-
-    {
-        id: 'brightness',
-        label: 'Brightness',
-        icon: '☀️',
-        actionValue: 100,
-        actionLogic: (feature) => feature,
-        applyLogic: (feature) => {
-             // Only return a brightness filter if it's not the default 100%
-            return feature.actionValue === 100 ? '' : `brightness(${feature.actionValue / 100})`;
-        }
-    },
-    {
-        id: 'high-contrast',
-        label: 'High Contrast',
-        icon: '⚫⚪',
-        actionValue: false,
-        actionLogic: (feature) => feature,
-        applyLogic: (feature) => {
-            if (feature.actionValue) {
-                return 'grayscale(100%) contrast(150%)'; 
-            }
-            return ''; 
-        }
-    },
-    {
-        id: 'letter-spacing',
-        label: 'Spacing',
-        icon: '↔',
-        actionValue: 0,
-        actionLogic: (feature) => feature,
-        applyLogic: (feature) => {
-             // APPLY FIX: Spacing logic is correct, no change needed here.
-            document.documentElement.style.setProperty('--custom-letter-spacing', `${feature.actionValue}px`);
-        }
+// Initialize when DOM is ready
+function initStyleElement() {
+    if (!styleElement && document.head) {
+        styleElement = document.createElement('style');
+        styleElement.id = 'ultimate-toolkit-styles';
+        document.head.appendChild(styleElement);
     }
-];
+}
 
-// --- 2. SETUP & STATE MANAGEMENT (Content Script) ---
+// Try to initialize immediately
+if (document.head) {
+    initStyleElement();
+} else {
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initStyleElement);
+    } else {
+        initStyleElement();
+    }
+}
 
-const STORAGE_KEY = 'accessibilityHubSettings';
-let currentSettings = [];
+// State management
+let currentFilters = {
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    hueRotate: 0,
+    blur: 0,
+    grayscale: 0,
+    sepia: 0,
+    invert: 0,
+    opacity: 100
+};
 
-// Inject styles (Removed CDN for Mv3 compliance, keeping only custom styles)
-const injectStyles = () => {
-    // NOTE: The Tailwind CDN injection code MUST BE REMOVED from the final product
-    // to comply with Manifest V3 CSP rules. For now, I'm keeping your style injection.
+let autoScrollInterval = null;
+let flipState = { horizontal: false, vertical: false };
 
-    // --- Inject custom base styles ---
-    if (!document.getElementById('acc-hub-base-styles')) {
-        const style = document.createElement('style');
-        style.id = 'acc-hub-base-styles';
-        style.innerHTML = `
-            /* --- Accessibility Hub Global Variables --- */
-            :root {
-                --custom-font-scale: 1;
-                --custom-letter-spacing: 0px;
-            }
+// ===========================
+// Message Listener
+// ===========================
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('Content script received message:', message);
+    try {
+        handleAction(message);
+        sendResponse({ success: true });
+    } catch (error) {
+        console.error('Error handling action:', error);
+        sendResponse({ success: false, error: error.message });
+    }
+    return true;
+});
 
-            /* --- Tailwind-Compatible Font Scaling (Applies Font Size & Spacing) --- */
+// ===========================
+// Action Handler
+// ===========================
+function handleAction(message) {
+    const { action, value, enabled } = message;
+    
+    switch (action) {
+        // Visual Effects
+        case 'darkMode':
+            applyDarkMode(enabled);
+            break;
+        case 'brightness':
+            currentFilters.brightness = value;
+            applyFilters();
+            break;
+        case 'contrast':
+            currentFilters.contrast = value;
+            applyFilters();
+            break;
+        case 'saturation':
+            currentFilters.saturation = value;
+            applyFilters();
+            break;
+        case 'hueRotate':
+            currentFilters.hueRotate = value;
+            applyFilters();
+            break;
+        case 'blur':
+            currentFilters.blur = value;
+            applyFilters();
+            break;
+        case 'grayscale':
+            currentFilters.grayscale = value;
+            applyFilters();
+            break;
+        case 'sepia':
+            currentFilters.sepia = value;
+            applyFilters();
+            break;
+        case 'invert':
+            currentFilters.invert = enabled ? 100 : 0;
+            applyFilters();
+            break;
+        case 'opacity':
+            currentFilters.opacity = value;
+            applyFilters();
+            break;
+            
+        // Typography
+        case 'fontFamily':
+            applyFontFamily(value);
+            break;
+        case 'fontSize':
+            applyFontSize(value);
+            break;
+        case 'lineHeight':
+            applyLineHeight(value);
+            break;
+        case 'letterSpacing':
+            applyLetterSpacing(value);
+            break;
+        case 'wordSpacing':
+            applyWordSpacing(value);
+            break;
+        case 'textTransform':
+            applyTextTransform(value);
+            break;
+        case 'fontWeight':
+            applyFontWeight(value);
+            break;
+        case 'textDecoration':
+            applyTextDecoration(value);
+            break;
+            
+        // Layout & Display
+        case 'pageWidth':
+            applyPageWidth(value);
+            break;
+        case 'pageZoom':
+            applyPageZoom(value);
+            break;
+        case 'hideImages':
+            applyHideImages(enabled);
+            break;
+        case 'hideVideos':
+            applyHideVideos(enabled);
+            break;
+        case 'hideAds':
+            applyHideAds(enabled);
+            break;
+        case 'hidePopups':
+            applyHidePopups(enabled);
+            break;
+        case 'rotatePage':
+            applyRotatePage(value);
+            break;
+        case 'flipHorizontal':
+            flipState.horizontal = enabled;
+            applyFlip();
+            break;
+        case 'flipVertical':
+            flipState.vertical = enabled;
+            applyFlip();
+            break;
+        case 'fullWidth':
+            applyFullWidth(enabled);
+            break;
+            
+        // Reading & Focus
+        case 'readingMode':
+            applyReadingMode(enabled);
+            break;
+        case 'focusMode':
+            applyFocusMode(enabled);
+            break;
+        case 'highlightLinks':
+            applyHighlightLinks(enabled);
+            break;
+        case 'dyslexiaFont':
+            applyDyslexiaFont(enabled);
+            break;
+        case 'textAlign':
+            applyTextAlign(value);
+            break;
+        case 'cursorStyle':
+            applyCursorStyle(value);
+            break;
+        case 'paragraphSpacing':
+            applyParagraphSpacing(value);
+            break;
+        case 'textShadow':
+            applyTextShadow(enabled);
+            break;
+            
+        // Color & Theme
+        case 'bgColor':
+            applyBgColor(value);
+            break;
+        case 'textColor':
+            applyTextColor(value);
+            break;
+        case 'linkColor':
+            applyLinkColor(value);
+            break;
+        case 'presetTheme':
+            applyPresetTheme(value);
+            break;
+        case 'borderHighlight':
+            applyBorderHighlight(enabled);
+            break;
+        case 'colorTemp':
+            applyColorTemp(value);
+            break;
+            
+        // Animations & Effects
+        case 'disableAnimations':
+            applyDisableAnimations(enabled);
+            break;
+        case 'smoothScroll':
+            applySmoothScroll(enabled);
+            break;
+        case 'pageTransition':
+            applyPageTransition(enabled);
+            break;
+        case 'shadowEffects':
+            applyShadowEffects(enabled);
+            break;
+        case 'hoverZoom':
+            applyHoverZoom(enabled);
+            break;
+        case 'parallax':
+            applyParallax(enabled);
+            break;
+            
+        // Productivity
+        case 'autoScroll':
+            applyAutoScroll(enabled, message.speed);
+            break;
+        case 'printFriendly':
+            applyPrintFriendly(enabled);
+            break;
+        case 'selectAll':
+            selectAllText();
+            break;
+    }
+}
+
+// ===========================
+// Visual Effects Implementation
+// ===========================
+function applyFilters() {
+    const filterString = `
+        brightness(${currentFilters.brightness}%)
+        contrast(${currentFilters.contrast}%)
+        saturate(${currentFilters.saturation}%)
+        hue-rotate(${currentFilters.hueRotate}deg)
+        blur(${currentFilters.blur}px)
+        grayscale(${currentFilters.grayscale}%)
+        sepia(${currentFilters.sepia}%)
+        invert(${currentFilters.invert}%)
+        opacity(${currentFilters.opacity}%)
+    `;
+    
+    updateStyle('filters', `
+        body {
+            filter: ${filterString} !important;
+        }
+    `);
+}
+
+function applyDarkMode(enabled) {
+    if (enabled) {
+        updateStyle('darkMode', `
             html {
-                font-size: calc(16px * var(--custom-font-scale, 1)) !important;
-                transition: font-size 0.25s ease-in-out;
+                filter: invert(1) hue-rotate(180deg) !important;
+                background: #1a1a1a !important;
             }
-
-            /* --- Apply Letter Spacing to Common Text Elements --- */
-            p, a, span, div, h1, h2, h3, h4, h5, h6 {
-                letter-spacing: var(--custom-letter-spacing, 0px) !important;
-                transition: letter-spacing 0.25s ease-in-out;
+            img, video, picture, [style*="background-image"] {
+                filter: invert(1) hue-rotate(180deg) !important;
             }
+        `);
+    } else {
+        removeStyle('darkMode');
+    }
+}
 
-            /* --- Transition Filters (Brightness/Contrast/Dark Mode) --- */
+// ===========================
+// Typography Implementation
+// ===========================
+function applyFontFamily(value) {
+    if (value === 'default') {
+        removeStyle('fontFamily');
+    } else {
+        updateStyle('fontFamily', `
+            * {
+                font-family: ${value} !important;
+            }
+        `);
+    }
+}
+
+function applyFontSize(value) {
+    updateStyle('fontSize', `
+        body {
+            font-size: ${value}% !important;
+        }
+    `);
+}
+
+function applyLineHeight(value) {
+    updateStyle('lineHeight', `
+        * {
+            line-height: ${value} !important;
+        }
+    `);
+}
+
+function applyLetterSpacing(value) {
+    updateStyle('letterSpacing', `
+        * {
+            letter-spacing: ${value}px !important;
+        }
+    `);
+}
+
+function applyWordSpacing(value) {
+    updateStyle('wordSpacing', `
+        * {
+            word-spacing: ${value}px !important;
+        }
+    `);
+}
+
+function applyTextTransform(value) {
+    if (value === 'none') {
+        removeStyle('textTransform');
+    } else {
+        updateStyle('textTransform', `
+            * {
+                text-transform: ${value} !important;
+            }
+        `);
+    }
+}
+
+function applyFontWeight(value) {
+    updateStyle('fontWeight', `
+        * {
+            font-weight: ${value} !important;
+        }
+    `);
+}
+
+function applyTextDecoration(value) {
+    if (value === 'none') {
+        removeStyle('textDecoration');
+    } else {
+        updateStyle('textDecoration', `
+            * {
+                text-decoration: ${value} !important;
+            }
+        `);
+    }
+}
+
+// ===========================
+// Layout & Display Implementation
+// ===========================
+function applyPageWidth(value) {
+    updateStyle('pageWidth', `
+        body {
+            max-width: ${value}% !important;
+            margin: 0 auto !important;
+        }
+    `);
+}
+
+function applyPageZoom(value) {
+    document.body.style.zoom = `${value}%`;
+}
+
+function applyHideImages(enabled) {
+    if (enabled) {
+        updateStyle('hideImages', `
+            img {
+                display: none !important;
+            }
+        `);
+    } else {
+        removeStyle('hideImages');
+    }
+}
+
+function applyHideVideos(enabled) {
+    if (enabled) {
+        updateStyle('hideVideos', `
+            video, iframe[src*="youtube"], iframe[src*="vimeo"] {
+                display: none !important;
+            }
+        `);
+    } else {
+        removeStyle('hideVideos');
+    }
+}
+
+function applyHideAds(enabled) {
+    if (enabled) {
+        updateStyle('hideAds', `
+            [class*="ad-"], [id*="ad-"], [class*="advertisement"],
+            [id*="advertisement"], .ad, #ad, ins.adsbygoogle {
+                display: none !important;
+            }
+        `);
+    } else {
+        removeStyle('hideAds');
+    }
+}
+
+function applyHidePopups(enabled) {
+    if (enabled) {
+        updateStyle('hidePopups', `
+            [class*="popup"], [class*="modal"], [class*="overlay"],
+            [id*="popup"], [id*="modal"], [id*="overlay"] {
+                display: none !important;
+            }
+        `);
+    } else {
+        removeStyle('hidePopups');
+    }
+}
+
+function applyRotatePage(value) {
+    updateStyle('rotatePage', `
+        body {
+            transform: rotate(${value}deg) !important;
+        }
+    `);
+}
+
+function applyFlip() {
+    const scaleX = flipState.horizontal ? -1 : 1;
+    const scaleY = flipState.vertical ? -1 : 1;
+    
+    updateStyle('flip', `
+        body {
+            transform: scale(${scaleX}, ${scaleY}) !important;
+        }
+    `);
+}
+
+function applyFullWidth(enabled) {
+    if (enabled) {
+        updateStyle('fullWidth', `
+            body, main, .container, .content, article {
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+        `);
+    } else {
+        removeStyle('fullWidth');
+    }
+}
+
+// ===========================
+// Reading & Focus Implementation
+// ===========================
+function applyReadingMode(enabled) {
+    if (enabled) {
+        updateStyle('readingMode', `
             body {
-                transition: filter 0.25s ease-in-out;
+                background: #f5f5dc !important;
+                color: #333 !important;
+                font-family: Georgia, serif !important;
+                line-height: 1.8 !important;
+                max-width: 800px !important;
+                margin: 0 auto !important;
+                padding: 40px !important;
             }
-
-            /* --- Dark Mode Exception: Prevents images and media from being inverted twice --- */
-            /* NOTE: This relies on the 'acc-hub-dark-mode' class being added to <body> */
-            body.acc-hub-dark-mode {
-                filter: none; /* Reset body filter to apply composition */
+            * {
+                background: transparent !important;
             }
-
-            body.acc-hub-dark-mode img, 
-            body.acc-hub-dark-mode video {
-                filter: invert(100%) hue-rotate(180deg);
+            img, video, aside, nav, header, footer, .sidebar {
+                display: none !important;
             }
-        `;
+        `);
+    } else {
+        removeStyle('readingMode');
+    }
+}
 
-        const target = document.head || document.documentElement;
-        if (target) {
-            target.appendChild(style);
-        } else {
-            document.addEventListener('DOMContentLoaded', () => {
-                (document.head || document.documentElement).appendChild(style);
-            });
+function applyFocusMode(enabled) {
+    if (enabled) {
+        updateStyle('focusMode', `
+            * {
+                opacity: 0.3 !important;
+                transition: opacity 0.3s !important;
+            }
+            *:hover, *:focus {
+                opacity: 1 !important;
+            }
+        `);
+    } else {
+        removeStyle('focusMode');
+    }
+}
+
+function applyHighlightLinks(enabled) {
+    if (enabled) {
+        updateStyle('highlightLinks', `
+            a {
+                background: yellow !important;
+                color: black !important;
+                padding: 2px 4px !important;
+                border-radius: 3px !important;
+                font-weight: bold !important;
+            }
+        `);
+    } else {
+        removeStyle('highlightLinks');
+    }
+}
+
+function applyDyslexiaFont(enabled) {
+    if (enabled) {
+        updateStyle('dyslexiaFont', `
+            * {
+                font-family: 'Comic Sans MS', 'Arial', sans-serif !important;
+                letter-spacing: 0.12em !important;
+                word-spacing: 0.16em !important;
+                line-height: 2 !important;
+            }
+        `);
+    } else {
+        removeStyle('dyslexiaFont');
+    }
+}
+
+function applyTextAlign(value) {
+    if (value === 'default') {
+        removeStyle('textAlign');
+    } else {
+        updateStyle('textAlign', `
+            * {
+                text-align: ${value} !important;
+            }
+        `);
+    }
+}
+
+function applyCursorStyle(value) {
+    if (value === 'default') {
+        removeStyle('cursorStyle');
+    } else {
+        updateStyle('cursorStyle', `
+            * {
+                cursor: ${value} !important;
+            }
+        `);
+    }
+}
+
+function applyParagraphSpacing(value) {
+    updateStyle('paragraphSpacing', `
+        p {
+            margin-bottom: ${value}px !important;
         }
-    }
-};
+    `);
+}
 
-
-const loadSettings = async (forceApply = false) => {
-    const stored = await chrome.storage.sync.get(STORAGE_KEY);
-    
-    // Merge stored settings with ALL_FEATURES defaults
-    if (stored[STORAGE_KEY] && stored[STORAGE_KEY].length) {
-        const storedMap = new Map(stored[STORAGE_KEY].map(f => [f.id, f]));
-        currentSettings = ALL_FEATURES.map(defaultFeature => {
-            const storedFeature = storedMap.get(defaultFeature.id);
-            if (storedFeature) {
-                return { ...defaultFeature, ...storedFeature };
+function applyTextShadow(enabled) {
+    if (enabled) {
+        updateStyle('textShadow', `
+            * {
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3) !important;
             }
-            return defaultFeature;
-        });
-    } else if (forceApply || !stored[STORAGE_KEY]) {
-        // If storage is empty or non-existent, initialize with defaults
-        currentSettings = ALL_FEATURES.map((f, i) => ({ 
-            ...f, 
-            order: i + 1, 
-            active: true, 
-            // Use the feature's default actionValue, or 100 if undefined
-            actionValue: f.actionValue === undefined ? 100 : f.actionValue
-        }));
-        // Store the initial default settings
-        await chrome.storage.sync.set({ [STORAGE_KEY]: currentSettings });
+        `);
+    } else {
+        removeStyle('textShadow');
     }
+}
 
-    if (currentSettings.length > 0) {
-        applyAllSettings();
-    }
-};
-
-const applyAllSettings = () => {
-    // --- 1. GLOBAL RESET ---
-    document.documentElement.style.removeProperty('--custom-font-scale');
-    document.documentElement.style.removeProperty('--custom-letter-spacing');
-    document.body.style.removeProperty('filter'); 
-    document.body.classList.remove('acc-hub-dark-mode'); 
-
-    // --- 2. PREPARE FILTERS ---
-    // Start with the default filter values (Identity filters)
-    const filterStrings = [];
-
-    // --- 3. APPLY ACTIVE FEATURES ---
-    const activeFeatures = currentSettings
-        .filter(f => f.active)
-        .sort((a, b) => a.order - b.order);
-
-    activeFeatures.forEach(feature => {
-        if (feature.applyLogic) {
-            const result = feature.applyLogic(feature);
-            
-            // Collect filter strings (used by dark-mode, brightness, high-contrast)
-            if (typeof result === 'string' && result.trim() !== '') {
-                filterStrings.push(result);
-            }
-
-            // Special handling for Dark Mode to add a class for exceptions
-            if (feature.id === 'dark-mode' && feature.actionValue === true) {
-                 document.body.classList.add('acc-hub-dark-mode');
-            }
+// ===========================
+// Color & Theme Implementation
+// ===========================
+function applyBgColor(value) {
+    updateStyle('bgColor', `
+        body, * {
+            background-color: ${value} !important;
         }
-    });
+    `);
+}
 
-    // --- 4. APPLY FINAL FILTERS ---
+function applyTextColor(value) {
+    updateStyle('textColor', `
+        * {
+            color: ${value} !important;
+        }
+    `);
+}
+
+function applyLinkColor(value) {
+    updateStyle('linkColor', `
+        a {
+            color: ${value} !important;
+        }
+    `);
+}
+
+function applyPresetTheme(value) {
+    const themes = {
+        default: null,
+        dark: {
+            bg: '#1a1a1a',
+            text: '#e0e0e0',
+            link: '#6b9eff'
+        },
+        sepia: {
+            bg: '#f4ecd8',
+            text: '#5c4a3a',
+            link: '#8b4513'
+        },
+        night: {
+            bg: '#0a1929',
+            text: '#b0c4de',
+            link: '#4da6ff'
+        },
+        forest: {
+            bg: '#1a2f1a',
+            text: '#c8e6c9',
+            link: '#81c784'
+        },
+        sunset: {
+            bg: '#2d1b2e',
+            text: '#ffd1dc',
+            link: '#ff69b4'
+        },
+        ocean: {
+            bg: '#001f3f',
+            text: '#7fdbff',
+            link: '#39cccc'
+        },
+        highContrast: {
+            bg: '#000000',
+            text: '#ffffff',
+            link: '#ffff00'
+        }
+    };
     
-    // If Dark Mode is active, we apply the inverse filter to the body, 
-    // and let the CSS handle the image/media exception.
-    if (document.body.classList.contains('acc-hub-dark-mode')) {
-        // Find the invert filter from the collected strings
-        const darkModeFilter = filterStrings.find(f => f.includes('invert(100%)'));
+    if (value === 'default' || !themes[value]) {
+        removeStyle('presetTheme');
+    } else {
+        const theme = themes[value];
+        updateStyle('presetTheme', `
+            body, * {
+                background-color: ${theme.bg} !important;
+                color: ${theme.text} !important;
+            }
+            a {
+                color: ${theme.link} !important;
+            }
+        `);
+    }
+}
+
+function applyBorderHighlight(enabled) {
+    if (enabled) {
+        updateStyle('borderHighlight', `
+            * {
+                border: 1px solid rgba(255, 0, 0, 0.3) !important;
+            }
+        `);
+    } else {
+        removeStyle('borderHighlight');
+    }
+}
+
+function applyColorTemp(value) {
+    const temp = parseInt(value);
+    if (temp === 0) {
+        removeStyle('colorTemp');
+    } else {
+        const filter = temp > 0 
+            ? `sepia(${temp}%) saturate(150%)` 
+            : `hue-rotate(${temp * 2}deg)`;
         
-        if (darkModeFilter) {
-            // Remove the dark mode filter from the main array so it's not applied twice
-            const index = filterStrings.indexOf(darkModeFilter);
-            filterStrings.splice(index, 1);
-            
-            // Apply the dark mode filter first to the body
-            document.body.style.filter = darkModeFilter;
-
-            // Now, apply the other filters (like brightness, contrast) to the body as well,
-            // using the existing filter value.
-            if (filterStrings.length > 0) {
-                 document.body.style.filter += ' ' + filterStrings.join(' ');
+        updateStyle('colorTemp', `
+            body {
+                filter: ${filter} !important;
             }
-        }
-    } 
-    // If Dark Mode is NOT active, or if it failed to find the filter, apply the rest normally.
-    else if (filterStrings.length > 0) {
-        document.body.style.filter = filterStrings.join(' ');
+        `);
     }
+}
+
+// ===========================
+// Animations & Effects Implementation
+// ===========================
+function applyDisableAnimations(enabled) {
+    if (enabled) {
+        updateStyle('disableAnimations', `
+            *, *::before, *::after {
+                animation-duration: 0s !important;
+                animation-delay: 0s !important;
+                transition-duration: 0s !important;
+                transition-delay: 0s !important;
+            }
+        `);
+    } else {
+        removeStyle('disableAnimations');
+    }
+}
+
+function applySmoothScroll(enabled) {
+    if (enabled) {
+        updateStyle('smoothScroll', `
+            html {
+                scroll-behavior: smooth !important;
+            }
+        `);
+    } else {
+        removeStyle('smoothScroll');
+    }
+}
+
+function applyPageTransition(enabled) {
+    if (enabled) {
+        updateStyle('pageTransition', `
+            body {
+                animation: fadeIn 0.5s ease !important;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+        `);
+    } else {
+        removeStyle('pageTransition');
+    }
+}
+
+function applyShadowEffects(enabled) {
+    if (enabled) {
+        updateStyle('shadowEffects', `
+            * {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+            }
+        `);
+    } else {
+        removeStyle('shadowEffects');
+    }
+}
+
+function applyHoverZoom(enabled) {
+    if (enabled) {
+        updateStyle('hoverZoom', `
+            * {
+                transition: transform 0.3s ease !important;
+            }
+            *:hover {
+                transform: scale(1.05) !important;
+            }
+        `);
+    } else {
+        removeStyle('hoverZoom');
+    }
+}
+
+function applyParallax(enabled) {
+    if (enabled) {
+        document.addEventListener('scroll', handleParallax);
+    } else {
+        document.removeEventListener('scroll', handleParallax);
+    }
+}
+
+function handleParallax() {
+    const scrolled = window.pageYOffset;
+    const parallaxElements = document.querySelectorAll('img, section, div');
     
-    // If no filter is needed, the style remains reset (document.body.style.filter = "")
-};
+    parallaxElements.forEach((el, index) => {
+        const speed = (index % 3 + 1) * 0.1;
+        el.style.transform = `translateY(${scrolled * speed}px)`;
+    });
+}
 
-// --- 3. MESSAGE LISTENER ---
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "APPLY_SETTINGS") {
-        loadSettings(true); 
+// ===========================
+// Productivity Implementation
+// ===========================
+function applyAutoScroll(enabled, speed) {
+    if (enabled) {
+        const scrollSpeed = parseInt(speed) || 3;
+        autoScrollInterval = setInterval(() => {
+            window.scrollBy(0, scrollSpeed);
+        }, 50);
+    } else {
+        if (autoScrollInterval) {
+            clearInterval(autoScrollInterval);
+            autoScrollInterval = null;
+        }
     }
-});
+}
 
+function applyPrintFriendly(enabled) {
+    if (enabled) {
+        updateStyle('printFriendly', `
+            @media print {
+                body {
+                    background: white !important;
+                    color: black !important;
+                }
+                nav, header, footer, aside, .sidebar, .ad {
+                    display: none !important;
+                }
+            }
+        `);
+    } else {
+        removeStyle('printFriendly');
+    }
+}
 
-// --- 4. INITIAL EXECUTION ---
+function selectAllText() {
+    const range = document.createRange();
+    range.selectNodeContents(document.body);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
 
-injectStyles(); 
-document.addEventListener('DOMContentLoaded', () => {
-    loadSettings();
-});
+// ===========================
+// Style Management Helpers
+// ===========================
+function updateStyle(id, css) {
+    // Ensure DOM is ready
+    if (!document.head) return;
+    
+    let style = document.getElementById(`toolkit-${id}`);
+    if (!style) {
+        style = document.createElement('style');
+        style.id = `toolkit-${id}`;
+        document.head.appendChild(style);
+    }
+    style.textContent = css;
+}
+
+function removeStyle(id) {
+    const style = document.getElementById(`toolkit-${id}`);
+    if (style) {
+        style.remove();
+    }
+}
+
+// ===========================
+// Initialize
+// ===========================
+console.log('Ultimate Web Toolkit - Content Script Loaded');
