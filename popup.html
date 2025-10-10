@@ -3,42 +3,884 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessibility Hub</title>
-    
-    <!-- Load Tailwind CSS -->
-    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
-     <script src="lib/tailwind.js"></script>
-    <style>
-        /* Define the popup size */
-        body {
-            width: 320px;
-            padding: 0;
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            min-height: 200px; /* Ensure space for the panel */
-        }
-        /* Custom scrollbar for a cleaner look */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background-color: #9ca3af;
-            border-radius: 3px;
-        }
-    </style>
+    <title>Ultimate Web Toolkit</title>
+    <link rel="stylesheet" href="popup.css">
 </head>
-<body class="bg-gray-50 Container">
-    <!-- Main Panel Container -->
-    <div id="accessibility-hub-panel" class="p-3 ">
-        <!-- Content will be injected here by popup.js -->
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">🚀 Ultimate Web Toolkit</h1>
+                <p class="subtitle">50+ Professional Tools at Your Fingertips</p>
+            </div>
+            <button class="settings-btn" id="settingsBtn" title="Customize Visible Tools">
+                <span class="settings-icon">⚙️</span>
+            </button>
+        </header>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-header">
+                <h2>⚙️ Customize Tools</h2>
+                <button class="close-settings" id="closeSettings">✕</button>
+            </div>
+            <p class="settings-description">Toggle which tool categories you want to see in the main interface</p>
+            <div class="settings-options" id="settingsOptions">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="settings-actions">
+                <button class="btn-secondary" id="selectAllTools">Select All</button>
+                <button class="btn-secondary" id="deselectAllTools">Deselect All</button>
+                <button class="btn-primary" id="saveSettings">Save & Apply</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content" id="mainContent">
+            
+            <!-- Visual Effects Category -->
+            <section class="category" data-category="visual">
+                <div class="category-header">
+                    <h2 class="category-title">🎨 Visual Effects</h2>
+                    <button class="collapse-btn">−</button>
+                </div>
+                <div class="category-content">
+                    <div class="tool-grid">
+                        <!-- Dark Mode -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🌙</span>
+                                <h3 class="tool-name">Dark Mode</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="darkMode">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Brightness -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">☀️</span>
+                                <h3 class="tool-name">Brightness</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="brightness" min="50" max="200" value="100" class="slider">
+                                <span class="value-display" id="brightnessValue">100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Contrast -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔆</span>
+                                <h3 class="tool-name">Contrast</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="contrast" min="50" max="200" value="100" class="slider">
+                                <span class="value-display" id="contrastValue">100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Saturation -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🎨</span>
+                                <h3 class="tool-name">Saturation</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="saturation" min="0" max="200" value="100" class="slider">
+                                <span class="value-display" id="saturationValue">100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Hue Rotate -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🌈</span>
+                                <h3 class="tool-name">Hue Rotate</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="hueRotate" min="0" max="360" value="0" class="slider">
+                                <span class="value-display" id="hueRotateValue">0°</span>
+                            </div>
+                        </div>
+
+                        <!-- Blur -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">💫</span>
+                                <h3 class="tool-name">Blur Effect</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="blur" min="0" max="10" value="0" step="0.5" class="slider">
+                                <span class="value-display" id="blurValue">0px</span>
+                            </div>
+                        </div>
+
+                        <!-- Grayscale -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">⚫</span>
+                                <h3 class="tool-name">Grayscale</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="grayscale" min="0" max="100" value="0" class="slider">
+                                <span class="value-display" id="grayscaleValue">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Sepia -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">📜</span>
+                                <h3 class="tool-name">Sepia</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="sepia" min="0" max="100" value="0" class="slider">
+                                <span class="value-display" id="sepiaValue">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Invert Colors -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔄</span>
+                                <h3 class="tool-name">Invert Colors</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="invert">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Opacity -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">👻</span>
+                                <h3 class="tool-name">Page Opacity</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="opacity" min="10" max="100" value="100" class="slider">
+                                <span class="value-display" id="opacityValue">100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Typography Category -->
+            <section class="category" data-category="typography">
+                <div class="category-header">
+                    <h2 class="category-title">📝 Typography</h2>
+                    <button class="collapse-btn">−</button>
+                </div>
+                <div class="category-content">
+                    <div class="tool-grid">
+                        <!-- Font Family -->
+                        <div class="tool-card wide">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔤</span>
+                                <h3 class="tool-name">Font Family</h3>
+                            </div>
+                            <div class="tool-control">
+                                <select id="fontFamily" class="select-input">
+                                    <option value="default">Default</option>
+                                    <option value="Arial, sans-serif">Arial</option>
+                                    <option value="'Times New Roman', serif">Times New Roman</option>
+                                    <option value="'Courier New', monospace">Courier New</option>
+                                    <option value="Georgia, serif">Georgia</option>
+                                    <option value="Verdana, sans-serif">Verdana</option>
+                                    <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+                                    <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                                    <option value="'Lucida Console', monospace">Lucida Console</option>
+                                    <option value="'Palatino Linotype', serif">Palatino</option>
+                                    <option value="Impact, sans-serif">Impact</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Font Size -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">📏</span>
+                                <h3 class="tool-name">Font Size</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="fontSize" min="50" max="200" value="100" class="slider">
+                                <span class="value-display" id="fontSizeValue">100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Line Height -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">📐</span>
+                                <h3 class="tool-name">Line Height</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="lineHeight" min="0.8" max="3" value="1.5" step="0.1" class="slider">
+                                <span class="value-display" id="lineHeightValue">1.5</span>
+                            </div>
+                        </div>
+
+                        <!-- Letter Spacing -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">↔️</span>
+                                <h3 class="tool-name">Letter Spacing</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="letterSpacing" min="-2" max="10" value="0" step="0.5" class="slider">
+                                <span class="value-display" id="letterSpacingValue">0px</span>
+                            </div>
+                        </div>
+
+                        <!-- Word Spacing -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">📊</span>
+                                <h3 class="tool-name">Word Spacing</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="wordSpacing" min="0" max="20" value="0" class="slider">
+                                <span class="value-display" id="wordSpacingValue">0px</span>
+                            </div>
+                        </div>
+
+                        <!-- Text Transform -->
+                        <div class="tool-card wide">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔠</span>
+                                <h3 class="tool-name">Text Transform</h3>
+                            </div>
+                            <div class="tool-control">
+                                <select id="textTransform" class="select-input">
+                                    <option value="none">None</option>
+                                    <option value="uppercase">UPPERCASE</option>
+                                    <option value="lowercase">lowercase</option>
+                                    <option value="capitalize">Capitalize</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Font Weight -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">💪</span>
+                                <h3 class="tool-name">Font Weight</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="fontWeight" min="100" max="900" value="400" step="100" class="slider">
+                                <span class="value-display" id="fontWeightValue">400</span>
+                            </div>
+                        </div>
+
+                        <!-- Text Decoration -->
+                        <div class="tool-card wide">
+                            <div class="tool-header">
+                                <span class="tool-icon">✏️</span>
+                                <h3 class="tool-name">Text Decoration</h3>
+                            </div>
+                            <div class="tool-control">
+                                <select id="textDecoration" class="select-input">
+                                    <option value="none">None</option>
+                                    <option value="underline">Underline</option>
+                                    <option value="overline">Overline</option>
+                                    <option value="line-through">Strike-through</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Layout & Display Category -->
+            <section class="category" data-category="layout">
+                <div class="category-header">
+                    <h2 class="category-title">📐 Layout & Display</h2>
+                    <button class="collapse-btn">−</button>
+                </div>
+                <div class="category-content">
+                    <div class="tool-grid">
+                        <!-- Page Width -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">↔️</span>
+                                <h3 class="tool-name">Page Width</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="pageWidth" min="50" max="100" value="100" class="slider">
+                                <span class="value-display" id="pageWidthValue">100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Page Zoom -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔍</span>
+                                <h3 class="tool-name">Page Zoom</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="pageZoom" min="50" max="200" value="100" class="slider">
+                                <span class="value-display" id="pageZoomValue">100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Hide Images -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🖼️</span>
+                                <h3 class="tool-name">Hide Images</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="hideImages">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Hide Videos -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🎥</span>
+                                <h3 class="tool-name">Hide Videos</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="hideVideos">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Hide Ads -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🚫</span>
+                                <h3 class="tool-name">Hide Ads</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="hideAds">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Hide Popups -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🪟</span>
+                                <h3 class="tool-name">Hide Popups</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="hidePopups">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Rotate Page -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔄</span>
+                                <h3 class="tool-name">Rotate Page</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="rotatePage" min="0" max="360" value="0" step="90" class="slider">
+                                <span class="value-display" id="rotatePageValue">0°</span>
+                            </div>
+                        </div>
+
+                        <!-- Flip Horizontal -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">⬅️➡️</span>
+                                <h3 class="tool-name">Flip Horizontal</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="flipHorizontal">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Flip Vertical -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">⬆️⬇️</span>
+                                <h3 class="tool-name">Flip Vertical</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="flipVertical">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Full Width Content -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">📏</span>
+                                <h3 class="tool-name">Full Width</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="fullWidth">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reading & Focus Category -->
+            <section class="category" data-category="reading">
+                <div class="category-header">
+                    <h2 class="category-title">📖 Reading & Focus</h2>
+                    <button class="collapse-btn">−</button>
+                </div>
+                <div class="category-content">
+                    <div class="tool-grid">
+                        <!-- Reading Mode -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">📚</span>
+                                <h3 class="tool-name">Reading Mode</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="readingMode">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Focus Mode -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🎯</span>
+                                <h3 class="tool-name">Focus Mode</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="focusMode">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Highlight Links -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔗</span>
+                                <h3 class="tool-name">Highlight Links</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="highlightLinks">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Dyslexia Font -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">♿</span>
+                                <h3 class="tool-name">Dyslexia Font</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="dyslexiaFont">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Text Align -->
+                        <div class="tool-card wide">
+                            <div class="tool-header">
+                                <span class="tool-icon">≡</span>
+                                <h3 class="tool-name">Text Alignment</h3>
+                            </div>
+                            <div class="tool-control">
+                                <select id="textAlign" class="select-input">
+                                    <option value="default">Default</option>
+                                    <option value="left">Left</option>
+                                    <option value="center">Center</option>
+                                    <option value="right">Right</option>
+                                    <option value="justify">Justify</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Cursor Style -->
+                        <div class="tool-card wide">
+                            <div class="tool-header">
+                                <span class="tool-icon">👆</span>
+                                <h3 class="tool-name">Cursor Style</h3>
+                            </div>
+                            <div class="tool-control">
+                                <select id="cursorStyle" class="select-input">
+                                    <option value="default">Default</option>
+                                    <option value="pointer">Pointer</option>
+                                    <option value="crosshair">Crosshair</option>
+                                    <option value="help">Help</option>
+                                    <option value="wait">Wait</option>
+                                    <option value="cell">Cell</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Paragraph Spacing -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">¶</span>
+                                <h3 class="tool-name">Paragraph Space</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="paragraphSpacing" min="0" max="50" value="0" class="slider">
+                                <span class="value-display" id="paragraphSpacingValue">0px</span>
+                            </div>
+                        </div>
+
+                        <!-- Text Shadow -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🌑</span>
+                                <h3 class="tool-name">Text Shadow</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="textShadow">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Color & Theme Category -->
+            <section class="category" data-category="color">
+                <div class="category-header">
+                    <h2 class="category-title">🎨 Colors & Theme</h2>
+                    <button class="collapse-btn">−</button>
+                </div>
+                <div class="category-content">
+                    <div class="tool-grid">
+                        <!-- Background Color -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🎨</span>
+                                <h3 class="tool-name">Background Color</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="color" id="bgColor" value="#ffffff" class="color-input">
+                                <button class="btn-reset" data-reset="bgColor">Reset</button>
+                            </div>
+                        </div>
+
+                        <!-- Text Color -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">✒️</span>
+                                <h3 class="tool-name">Text Color</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="color" id="textColor" value="#000000" class="color-input">
+                                <button class="btn-reset" data-reset="textColor">Reset</button>
+                            </div>
+                        </div>
+
+                        <!-- Link Color -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔗</span>
+                                <h3 class="tool-name">Link Color</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="color" id="linkColor" value="#0000ff" class="color-input">
+                                <button class="btn-reset" data-reset="linkColor">Reset</button>
+                            </div>
+                        </div>
+
+                        <!-- Custom Theme -->
+                        <div class="tool-card wide">
+                            <div class="tool-header">
+                                <span class="tool-icon">🌟</span>
+                                <h3 class="tool-name">Preset Themes</h3>
+                            </div>
+                            <div class="tool-control">
+                                <select id="presetTheme" class="select-input">
+                                    <option value="default">Default</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="sepia">Sepia</option>
+                                    <option value="night">Night Blue</option>
+                                    <option value="forest">Forest Green</option>
+                                    <option value="sunset">Sunset</option>
+                                    <option value="ocean">Ocean</option>
+                                    <option value="highContrast">High Contrast</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Border Color -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔲</span>
+                                <h3 class="tool-name">Border Highlight</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="borderHighlight">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Color Temperature -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🌡️</span>
+                                <h3 class="tool-name">Color Temp</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="colorTemp" min="-50" max="50" value="0" class="slider">
+                                <span class="value-display" id="colorTempValue">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Animations & Effects Category -->
+            <section class="category" data-category="animations">
+                <div class="category-header">
+                    <h2 class="category-title">✨ Animations & Effects</h2>
+                    <button class="collapse-btn">−</button>
+                </div>
+                <div class="category-content">
+                    <div class="tool-grid">
+                        <!-- Disable Animations -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">⏸️</span>
+                                <h3 class="tool-name">Disable Animations</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="disableAnimations">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Smooth Scroll -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">📜</span>
+                                <h3 class="tool-name">Smooth Scroll</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="smoothScroll">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Page Transition -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🎬</span>
+                                <h3 class="tool-name">Page Transition</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="pageTransition">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Shadow Effects -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">💎</span>
+                                <h3 class="tool-name">Shadow Effects</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="shadowEffects">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Hover Zoom -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔎</span>
+                                <h3 class="tool-name">Hover Zoom</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="hoverZoom">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Parallax Effect -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🌊</span>
+                                <h3 class="tool-name">Parallax Effect</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="parallax">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Productivity Category -->
+            <section class="category" data-category="productivity">
+                <div class="category-header">
+                    <h2 class="category-title">⚡ Productivity</h2>
+                    <button class="collapse-btn">−</button>
+                </div>
+                <div class="category-content">
+                    <div class="tool-grid">
+                        <!-- Auto Scroll -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">⬇️</span>
+                                <h3 class="tool-name">Auto Scroll</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="autoScroll">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Scroll Speed -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">⚡</span>
+                                <h3 class="tool-name">Scroll Speed</h3>
+                            </div>
+                            <div class="tool-control">
+                                <input type="range" id="scrollSpeed" min="1" max="10" value="3" class="slider">
+                                <span class="value-display" id="scrollSpeedValue">3</span>
+                            </div>
+                        </div>
+
+                        <!-- Screenshot Mode -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">📸</span>
+                                <h3 class="tool-name">Screenshot Mode</h3>
+                            </div>
+                            <div class="tool-control">
+                                <button class="btn-action" id="screenshotBtn">Capture</button>
+                            </div>
+                        </div>
+
+                        <!-- Print Friendly -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🖨️</span>
+                                <h3 class="tool-name">Print Friendly</h3>
+                            </div>
+                            <div class="tool-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="printFriendly">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Word Counter -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🔢</span>
+                                <h3 class="tool-name">Word Counter</h3>
+                            </div>
+                            <div class="tool-control">
+                                <button class="btn-action" id="wordCountBtn">Count</button>
+                            </div>
+                        </div>
+
+                        <!-- Copy All Text -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">📋</span>
+                                <h3 class="tool-name">Copy All Text</h3>
+                            </div>
+                            <div class="tool-control">
+                                <button class="btn-action" id="copyTextBtn">Copy</button>
+                            </div>
+                        </div>
+
+                        <!-- Select All -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">✅</span>
+                                <h3 class="tool-name">Select All</h3>
+                            </div>
+                            <div class="tool-control">
+                                <button class="btn-action" id="selectAllBtn">Select</button>
+                            </div>
+                        </div>
+
+                        <!-- Translate Page -->
+                        <div class="tool-card">
+                            <div class="tool-header">
+                                <span class="tool-icon">🌐</span>
+                                <h3 class="tool-name">Translate</h3>
+                            </div>
+                            <div class="tool-control">
+                                <button class="btn-action" id="translateBtn">Translate</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <section class="quick-actions">
+                <button class="btn-primary" id="resetAll">🔄 Reset All</button>
+                <button class="btn-secondary" id="savePreset">💾 Save Preset</button>
+                <button class="btn-secondary" id="loadPreset">📂 Load Preset</button>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Made with ❤️ for Hackathon | <span id="toolCount">50+</span> Tools Available</p>
+        </footer>
     </div>
 
-    <!-- Modal for Edit Tiles (Hidden by default) -->
-    <div id="accessibility-hub-edit-modal" class="hidden fixed inset-0 bg-white z-50 overflow-y-scroll overflow-x-hide">
-        <!-- Edit UI will be injected here by popup.js -->
-    </div>
-    
-    <!-- Load the popup logic -->
     <script src="popup.js"></script>
 </body>
 </html>
