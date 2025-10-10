@@ -1,15 +1,24 @@
 {
- "manifest_version": 3,
-  "name": "Modular Accessibility Hub (Toolbar Popup)",
+  "manifest_version": 3,
+  "name": "Ultimate Web Toolkit - 50+ Tools",
   "version": "1.2",
-  "description": "A highly customizable toolbar popup for web accessibility features, built with modular definitions and Tailwind CSS.",
+  "description": "Professional toolkit with 50+ features including dark mode, fonts, filters, productivity tools, and more!",
   "icons": {
     "128": "icon.png" 
   },
   "permissions": [
-    "storage"
+    "activeTab",
+    "storage",
+    "scripting",
+    "tabs"
   ],
- "action": {
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
   },
@@ -17,13 +26,10 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "run_at": "document_start"
+      "run_at": "document_idle"
     }
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+  "background": {
+    "service_worker": "background.js"
   }
 }
