@@ -149,9 +149,9 @@ A professional Chrome extension with **50+ powerful tools** to customize and enh
 - `tabs` - Tab management
 - `<all_urls>` - Work on all websites
 
-## 🎯 Hackathon Ready!
+## 🎯 Hackatoberfest Ready!
 
-This extension is designed for hackathon presentations with:
+This extension is designed for hackatoberfest presentations with:
 - ✅ **50+ features** - Impressive feature count
 - ✅ **Professional UI** - Modern, polished interface
 - ✅ **User customization** - Settings panel for personalization
@@ -181,7 +181,7 @@ Potential features for future versions:
 
 ## 🎉 Demo Tips
 
-For your hackathon presentation:
+For your hackatoberfest presentation:
 1. Show the **professional UI** first
 2. Demonstrate **3-4 popular features** (dark mode, font size, hide ads)
 3. Show the **settings customization** panel
@@ -195,8 +195,7 @@ Open Source - Feel free to use, modify, and distribute!
 
 ## 👨‍💻 Author
 
-Created for Hackathon - October 2025
+Created for Hackatoberfest - October 2025
 
 ---
 
-**Good luck with your hackathon! 🎉**
