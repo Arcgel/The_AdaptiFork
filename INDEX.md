@@ -1,6 +1,6 @@
 # 📚 Ultimate Web Toolkit - Complete Documentation Index
 
-Welcome to your hackathon project! This index will guide you through all the documentation.
+Welcome to your Hackatoberfest project! This index will guide you through all the documentation.
 
 ---
 
@@ -34,7 +34,7 @@ Welcome to your hackathon project! This index will guide you through all the doc
 - **[create-icons.html](create-icons.html)** - Browser-based icon generator
 
 ### 🎤 Demo & Testing
-- **[DEMO-SCRIPT.md](DEMO-SCRIPT.md)** - Hackathon presentation script
+- **[DEMO-SCRIPT.md](DEMO-SCRIPT.md)** - Hackatoberfest presentation script
 - **[TESTING-CHECKLIST.md](TESTING-CHECKLIST.md)** - Complete testing guide
 - **[INDEX.md](INDEX.md)** - This file
 
@@ -148,7 +148,7 @@ Click extension icon and try features!
 
 ---
 
-## ✅ Pre-Hackathon Checklist
+## ✅ Pre-Hackatoberfest Checklist
 
 Before Friday:
 - [ ] Read QUICKSTART.md
@@ -235,7 +235,7 @@ Everything you need is here:
 3. FEATURES.md (5 min)
 4. Open FEATURE-SHOWCASE.html (5 min)
 
-### Night Before Hackathon (15 minutes):
+### Night Before Hackatoberfest (15 minutes):
 1. Re-read DEMO-SCRIPT.md (5 min)
 2. Practice demo 3 times (10 min)
 3. Review key numbers (56+ features, 7 categories)
@@ -277,7 +277,7 @@ You have created a **professional, feature-rich Chrome extension** with:
 - Zero dependencies
 - Full functionality
 
-**This is hackathon-winning material!**
+**This is Hackatoberfest-winning material!**
 
 Good luck on Friday! 🚀🎉
 

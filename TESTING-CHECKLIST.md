@@ -2,7 +2,7 @@
 
 ## 🎯 Pre-Demo Testing (15 minutes)
 
-Test your extension before the hackathon to ensure everything works!
+Test your extension before the Hackatoberfest to ensure everything works!
 
 ---
 
@@ -311,7 +311,7 @@ Workaround:
 - **Performance:** ⬜ Pass / ⬜ Fail
 - **Demo Ready:** ⬜ Pass / ⬜ Fail
 
-### Ready for Hackathon?
+### Ready for Hackatoberfest?
 ⬜ **YES - All systems go!** 🚀  
 ⬜ **ALMOST - Minor fixes needed**  
 ⬜ **NOT YET - Critical issues to resolve**
@@ -328,7 +328,7 @@ You're ready! Your extension:
 - ✅ Works across websites
 - ✅ Demo-ready
 
-**Good luck at your hackathon! 🚀**
+**Good luck at your Hackatoberfest! 🚀**
 
 ---
 
