@@ -39,7 +39,7 @@ Edit `manifest.json` and comment out lines 8-18 (the icon sections)
 
 ---
 
-## 🎤 Demo Script for Hackathon (2 minutes)
+## 🎤 Demo Script for Hackatoberfest (2 minutes)
 
 ### Opening (15 sec)
 *"I built Ultimate Web Toolkit - 56+ tools to customize any website instantly."*
@@ -133,7 +133,7 @@ Your extension has:
 - ✅ All features fully functional
 - ✅ Complete documentation
 
-**Good luck at your hackathon this Friday! 🎉**
+**Good luck at your Hackatoberfest this Friday! 🎉**
 
 ---
 
@@ -147,4 +147,4 @@ After your presentation, you can enhance with:
 - More preset themes
 - Publish to Chrome Web Store
 
-But for the hackathon, you're 100% ready to go! 🚀
+But for the Hackatoberfest, you're 100% ready to go! 🚀

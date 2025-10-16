@@ -1,4 +1,4 @@
-# 🎤 Hackathon Demo Script - Ultimate Web Toolkit
+# 🎤 Hackatoberfest Demo Script - Ultimate Web Toolkit
 
 ## ⏱️ 2-Minute Demo (Recommended)
 
@@ -243,4 +243,4 @@ Your extension is impressive, complete, and ready to demo.
 
 **Remember:** Confidence is key. You built something amazing!
 
-**Good luck at your hackathon! 🚀**
+**Good luck at your Hackatoberfest! 🚀**
