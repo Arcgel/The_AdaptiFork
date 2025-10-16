@@ -745,11 +745,20 @@ async function loadPreset() {
             applySettingsToUI();
             await saveSettings();
             
-            // Apply all settings
+            // Apply all settings by triggering their respective apply functions
             Object.keys(currentSettings).forEach(key => {
                 const element = document.getElementById(key);
                 if (element) {
-                    element.dispatchEvent(new Event('change'));
+                    const value = currentSettings[key];
+                    
+                    // Trigger the appropriate event based on element type
+                    if (element.type === 'checkbox') {
+                        element.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else if (element.type === 'range') {
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                    } else {
+                        element.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
                 }
             });
             
@@ -801,7 +810,7 @@ function closeSettings() {
 }
 
 async function saveCategorySettings() {
-    const checkboxes = document.querySelectorAll('[data-category]');
+    const checkboxes = document.querySelectorAll('#settingsOptions input[data-category]');
     const visibility = {};
     
     checkboxes.forEach(cb => {
@@ -815,13 +824,13 @@ async function saveCategorySettings() {
 }
 
 function selectAllCategories() {
-    document.querySelectorAll('[data-category]').forEach(cb => {
+    document.querySelectorAll('#settingsOptions input[data-category]').forEach(cb => {
         cb.checked = true;
     });
 }
 
 function deselectAllCategories() {
-    document.querySelectorAll('[data-category]').forEach(cb => {
+    document.querySelectorAll('#settingsOptions input[data-category]').forEach(cb => {
         cb.checked = false;
     });
 }
@@ -832,9 +841,9 @@ async function loadCategoryVisibility() {
         const visibility = result.categoryVisibility || defaultCategories;
         applyCategoryVisibility(visibility);
         
-        // Update checkboxes
+        // Update checkboxes in settings panel
         Object.keys(visibility).forEach(cat => {
-            const checkbox = document.querySelector(`[data-category="${cat}"]`);
+            const checkbox = document.querySelector(`#settingsOptions input[data-category="${cat}"]`);
             if (checkbox) {
                 checkbox.checked = visibility[cat];
             }
@@ -846,8 +855,7 @@ async function loadCategoryVisibility() {
 
 function applyCategoryVisibility(visibility) {
     Object.keys(visibility).forEach(cat => {
-        const category = document.querySelector(`[data-category="${cat}"]`)?.closest('.category') || 
-                        document.querySelector(`.category[data-category="${cat}"]`);
+        const category = document.querySelector(`.category[data-category="${cat}"]`);
         if (category) {
             if (visibility[cat]) {
                 category.classList.remove('hidden');
