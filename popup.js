@@ -745,11 +745,20 @@ async function loadPreset() {
             applySettingsToUI();
             await saveSettings();
             
-            // Apply all settings
+            // Apply all settings by triggering their respective apply functions
             Object.keys(currentSettings).forEach(key => {
                 const element = document.getElementById(key);
                 if (element) {
-                    element.dispatchEvent(new Event('change'));
+                    const value = currentSettings[key];
+                    
+                    // Trigger the appropriate event based on element type
+                    if (element.type === 'checkbox') {
+                        element.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else if (element.type === 'range') {
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                    } else {
+                        element.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
                 }
             });
             
