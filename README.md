@@ -179,16 +179,6 @@ Potential features for future versions:
 - **Performance**: Some features may impact page performance on complex sites
 - **Compatibility**: Works on Chrome and Chromium-based browsers
 
-## 🎉 Demo Tips
-
-For your hackatoberfest presentation:
-1. Show the **professional UI** first
-2. Demonstrate **3-4 popular features** (dark mode, font size, hide ads)
-3. Show the **settings customization** panel
-4. Demonstrate **save/load presets**
-5. Highlight the **50+ tools** available
-6. Show **real-time updates** as you adjust sliders
-
 ## 📄 License
 
 Open Source - Feel free to use, modify, and distribute!
