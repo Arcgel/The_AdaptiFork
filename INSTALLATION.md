@@ -79,7 +79,7 @@ test/
 └── INSTALLATION.md (this file)
 ```
 
-## Ready for Hackatoberfest! 🎉
+## Ready for Hacktoberfest! 🎉
 
 Once loaded, you have:
 - ✅ 50+ working tools

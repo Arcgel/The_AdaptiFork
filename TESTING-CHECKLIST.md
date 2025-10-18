@@ -2,7 +2,7 @@
 
 ## 🎯 Pre-Demo Testing (15 minutes)
 
-Test your extension before the Hackatoberfest to ensure everything works!
+Test your extension before the Hacktoberfest to ensure everything works!
 
 ---
 

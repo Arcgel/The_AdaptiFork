@@ -175,7 +175,7 @@
 
 ---
 
-## 🎤 Hackatoberfest Presentation Tips
+## 🎤 Hacktoberfest Presentation Tips
 
 ### Opening (30 seconds)
 "I built Ultimate Web Toolkit - a Chrome extension with **56+ tools** to customize any website in real-time."
@@ -193,7 +193,7 @@
 
 ---
 
-**Perfect for Hackatoberfest judging criteria:**
+**Perfect for Hacktoberfest judging criteria:**
 - ✅ Innovation (56+ features in one extension)
 - ✅ Technical Complexity (Multiple Chrome APIs, CSS injection)
 - ✅ User Experience (Professional UI, customization)
