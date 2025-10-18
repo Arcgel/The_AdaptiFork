@@ -945,3 +945,132 @@ function showNotification(message, type = 'success') {
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
+
+
+
+// ===========================
+// AI Agent Chat
+// ===========================
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. Get Elements ---
+    const modal = document.getElementById('ai-modal');
+    const closeModal = document.querySelector('.close-btn');
+    const modalTitle = modal.querySelector('h2');
+    const aiResponse = document.getElementById('ai-response');
+    const aiInput = document.getElementById('ai-input');
+    const aiSend = document.getElementById('ai-send');
+    
+    // Get all buttons that open an AI chat (assuming they all have class 'btn-secondary')
+    const toolButtons = document.querySelectorAll('.category-content .btn-secondary');
+
+    // --- 2. Tool Configuration Map ---
+    // Maps the button ID to the chat title, initial prompt, and AI persona for the webhook
+    const toolConfig = {
+        'open-ai-chat': {
+            title: '🤖 Web Assistant Chat',
+            persona: 'web_assistant',
+            prompt: "Hello! I'm your **Web Assistant**. How can I help you with design, code, or writing today?"
+        },
+        'open-career-coach': {
+            title: '🎓 Career & Skill Coach',
+            persona: 'career_coach',
+            prompt: "Welcome! I can help you with a personalized learning path, interview prep, or skill analysis. What's your **career goal**?"
+        },
+        'open-finance-manager': {
+            title: '💰 Finance Manager AI',
+            persona: 'finance_ai',
+            prompt: "Hi! I'm ready to help you manage your money. Would you like to set a budget, optimize debt, or review an **investment strategy**?"
+        },
+        'open-wellness-chat': {
+            title: '🧠 Wellness Chatbot',
+            persona: 'wellness_bot',
+            prompt: "You've got this. I'm here for 24/7, non-judgmental support. How are you **feeling right now**?"
+        }
+    };
+
+    // --- 3. Modal Open/Close Functionality ---
+
+    // Function to open the modal and set context
+    const openChatModal = (buttonId) => {
+        const config = toolConfig[buttonId];
+        if (config) {
+            // Set modal title and initial AI message
+            modalTitle.innerHTML = config.title;
+            aiResponse.innerHTML = `<div class="ai-msg">${config.prompt}</div>`;
+            
+            // Store the current AI persona on the send button for later use
+            aiSend.setAttribute('data-persona', config.persona);
+
+            // Clear the input area and display the modal
+            aiInput.value = '';
+            modal.style.display = 'block';
+            aiResponse.scrollTop = aiResponse.scrollHeight;
+        }
+    };
+
+    // Attach event listeners to all tool buttons
+    toolButtons.forEach(button => {
+        button.addEventListener('click', (event) => {
+            openChatModal(event.currentTarget.id);
+        });
+    });
+
+    // Close Modal listeners (re-using your original logic)
+    closeModal.onclick = () => modal.style.display = 'none';
+    window.onclick = (e) => { 
+        if (e.target === modal) modal.style.display = 'none'; 
+    };
+    
+    // --- 4. Enhanced Send Functionality (Context-Aware) ---
+
+    // Your existing webhook URL
+    const webhookURL = "https://hook.us2.make.com/wvvdqqw355sog6lk7moid2xpr18qnl6p";
+
+    aiSend.addEventListener('click', async () => {
+        const msg = aiInput.value.trim();
+        const persona = aiSend.getAttribute('data-persona'); // Get the current AI role!
+
+        if (!msg) return;
+
+        // Display user's message
+        aiResponse.innerHTML += `<div class="user-msg">${msg}</div>`;
+        aiInput.value = '';
+        aiResponse.scrollTop = aiResponse.scrollHeight;
+
+        // Show temporary "thinking" message
+        const loadingMsg = document.createElement('div');
+        loadingMsg.className = 'ai-msg';
+        loadingMsg.textContent = '🤖 Thinking...';
+        aiResponse.appendChild(loadingMsg);
+        aiResponse.scrollTop = aiResponse.scrollHeight;
+
+        try {
+            // Send message to Make.com webhook with the added 'persona' context
+            const res = await fetch(webhookURL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    text: msg,
+                    // **THIS IS THE CRITICAL CHANGE**
+                    // This tells your Make.com scenario which AI role to use.
+                    persona: persona 
+                })
+            });
+
+            const text = await res.text();
+            loadingMsg.remove();
+
+            // Display AI response
+            aiResponse.innerHTML += `<div class="ai-msg">🤖 ${text || "Sorry, no response received."}</div>`;
+            aiResponse.scrollTop = aiResponse.scrollHeight;
+
+        } catch (error) {
+            loadingMsg.remove();
+            aiResponse.innerHTML += `<div class="ai-msg">⚠️ Error connecting to AI service.</div>`;
+            console.error(error);
+        }
+    });
+
+});
