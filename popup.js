@@ -785,6 +785,9 @@ async function loadPreset() {
             });
             
             showNotification(`Preset "${presetName}" loaded!`);
+        } else if (presetName) {
+            // User entered a name but it doesn't exist
+            showNotification(`Preset "${presetName}" not found. Available presets: ${presetNames.join(', ')}`, 'error');
         }
     } catch (error) {
         console.error('Load preset error:', error);
