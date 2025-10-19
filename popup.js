@@ -12,7 +12,8 @@ const defaultCategories = {
     reading: true,
     color: true,
     animations: true,
-    productivity: true
+    productivity: true,
+    aiChat: true
 };
 
 // ===========================
@@ -166,6 +167,27 @@ function initializeEventListeners() {
     document.getElementById('resetAll').addEventListener('click', resetAllSettings);
     document.getElementById('savePreset').addEventListener('click', savePreset);
     document.getElementById('loadPreset').addEventListener('click', loadPreset);
+
+    // AI Agent Chat
+    document.getElementById('open-ai-chat')?.addEventListener('click', openAIChat);
+    document.getElementById('open-career-coach')?.addEventListener('click', openCareerCoach);
+    document.getElementById('open-finance-manager')?.addEventListener('click', openFinanceManager);
+    document.getElementById('open-wellness-chat')?.addEventListener('click', openWellnessChat);
+    
+    // AI Modal
+    const modal = document.getElementById('ai-modal');
+    const closeBtn = modal?.querySelector('.close-btn');
+    const sendBtn = document.getElementById('ai-send');
+    
+    closeBtn?.addEventListener('click', closeAIModal);
+    sendBtn?.addEventListener('click', sendAIMessage);
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeAIModal();
+        }
+    });
 }
 
 // ===========================
@@ -781,7 +803,8 @@ function initializeSettingsPanel() {
         { id: 'reading', name: '📖 Reading & Focus', icon: '📖' },
         { id: 'color', name: '🎨 Colors & Theme', icon: '🎨' },
         { id: 'animations', name: '✨ Animations & Effects', icon: '✨' },
-        { id: 'productivity', name: '⚡ Productivity', icon: '⚡' }
+        { id: 'productivity', name: '⚡ Productivity', icon: '⚡' },
+        { id: 'aiChat', name: '🤖 AI Agent Chat', icon: '🤖' }
     ];
     
     categories.forEach(cat => {
@@ -789,7 +812,6 @@ function initializeSettingsPanel() {
         item.className = 'setting-item';
         item.innerHTML = `
             <span class="setting-label">
-                <span>${cat.icon}</span>
                 <span>${cat.name}</span>
             </span>
             <label class="toggle-switch">
@@ -952,6 +974,123 @@ function showNotification(message, type = 'success') {
 // AI Agent Chat
 // ===========================
 
+function openAIChat() {
+    const modal = document.getElementById('ai-modal');
+    const modalTitle = modal?.querySelector('h2');
+    const aiResponse = document.getElementById('ai-response');
+    const aiInput = document.getElementById('ai-input');
+    const aiSend = document.getElementById('ai-send');
+    
+    if (modalTitle) modalTitle.innerHTML = '🤖 Web Assistant Chat';
+    if (aiResponse) aiResponse.innerHTML = `<div class="ai-msg">Hello! I'm your **Web Assistant**. How can I help you with design, code, or writing today?</div>`;
+    if (aiSend) aiSend.setAttribute('data-persona', 'web_assistant');
+    if (aiInput) aiInput.value = '';
+    if (modal) modal.style.display = 'block';
+    if (aiResponse) aiResponse.scrollTop = aiResponse.scrollHeight;
+}
+
+function openCareerCoach() {
+    const modal = document.getElementById('ai-modal');
+    const modalTitle = modal?.querySelector('h2');
+    const aiResponse = document.getElementById('ai-response');
+    const aiInput = document.getElementById('ai-input');
+    const aiSend = document.getElementById('ai-send');
+    
+    if (modalTitle) modalTitle.innerHTML = '🎓 Career & Skill Coach';
+    if (aiResponse) aiResponse.innerHTML = `<div class="ai-msg">Welcome! I can help you with a personalized learning path, interview prep, or skill analysis. What's your **career goal**?</div>`;
+    if (aiSend) aiSend.setAttribute('data-persona', 'career_coach');
+    if (aiInput) aiInput.value = '';
+    if (modal) modal.style.display = 'block';
+    if (aiResponse) aiResponse.scrollTop = aiResponse.scrollHeight;
+}
+
+function openFinanceManager() {
+    const modal = document.getElementById('ai-modal');
+    const modalTitle = modal?.querySelector('h2');
+    const aiResponse = document.getElementById('ai-response');
+    const aiInput = document.getElementById('ai-input');
+    const aiSend = document.getElementById('ai-send');
+    
+    if (modalTitle) modalTitle.innerHTML = '💰 Finance Manager AI';
+    if (aiResponse) aiResponse.innerHTML = `<div class="ai-msg">Hi! I'm ready to help you manage your money. Would you like to set a budget, optimize debt, or review an **investment strategy**?</div>`;
+    if (aiSend) aiSend.setAttribute('data-persona', 'finance_ai');
+    if (aiInput) aiInput.value = '';
+    if (modal) modal.style.display = 'block';
+    if (aiResponse) aiResponse.scrollTop = aiResponse.scrollHeight;
+}
+
+function openWellnessChat() {
+    const modal = document.getElementById('ai-modal');
+    const modalTitle = modal?.querySelector('h2');
+    const aiResponse = document.getElementById('ai-response');
+    const aiInput = document.getElementById('ai-input');
+    const aiSend = document.getElementById('ai-send');
+    
+    if (modalTitle) modalTitle.innerHTML = '🧠 Wellness Chatbot';
+    if (aiResponse) aiResponse.innerHTML = `<div class="ai-msg">You've got this. I'm here for 24/7, non-judgmental support. How are you **feeling right now**?</div>`;
+    if (aiSend) aiSend.setAttribute('data-persona', 'wellness_bot');
+    if (aiInput) aiInput.value = '';
+    if (modal) modal.style.display = 'block';
+    if (aiResponse) aiResponse.scrollTop = aiResponse.scrollHeight;
+}
+
+function closeAIModal() {
+    const modal = document.getElementById('ai-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function sendAIMessage() {
+    const aiInput = document.getElementById('ai-input');
+    const aiResponse = document.getElementById('ai-response');
+    const aiSend = document.getElementById('ai-send');
+    const msg = aiInput?.value.trim();
+    const persona = aiSend?.getAttribute('data-persona');
+
+    if (!msg) return;
+
+    // Display user's message
+    if (aiResponse) {
+        aiResponse.innerHTML += `<div class="user-msg">${msg}</div>`;
+        aiResponse.scrollTop = aiResponse.scrollHeight;
+    }
+    if (aiInput) aiInput.value = '';
+
+    // Show temporary "thinking" message
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = 'ai-msg';
+    loadingMsg.textContent = '🤖 Thinking...';
+    if (aiResponse) {
+        aiResponse.appendChild(loadingMsg);
+        aiResponse.scrollTop = aiResponse.scrollHeight;
+    }
+
+    // Send message to Make.com webhook
+    const webhookURL = "https://hook.us2.make.com/wvvdqqw355sog6lk7moid2xpr18qnl6p";
+    
+    fetch(webhookURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            text: msg,
+            persona: persona 
+        })
+    })
+    .then(res => res.text())
+    .then(text => {
+        loadingMsg.remove();
+        if (aiResponse) {
+            aiResponse.innerHTML += `<div class="ai-msg">🤖 ${text || "Sorry, no response received."}</div>`;
+            aiResponse.scrollTop = aiResponse.scrollHeight;
+        }
+    })
+    .catch(error => {
+        loadingMsg.remove();
+        if (aiResponse) {
+            aiResponse.innerHTML += `<div class="ai-msg">⚠️ Error connecting to AI service.</div>`;
+        }
+        console.error(error);
+    });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- 1. Get Elements ---
