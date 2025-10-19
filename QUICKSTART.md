@@ -42,10 +42,10 @@ Edit `manifest.json` and comment out lines 8-18 (the icon sections)
 ## 🎤 Demo Script for Hacktoberfest (2 minutes)
 
 ### Opening (15 sec)
-*"I built Ultimate Web Toolkit - 56+ tools to customize any website instantly."*
+*"I built Ultimate Web Toolkit - 60+ tools to customize any website instantly."*
 
 ### Live Demo (90 sec)
-1. **Show UI** - *"Professional interface with 7 organized categories"*
+1. **Show UI** - *"Professional interface with 8 organized categories"*
 2. **Dark Mode** - Toggle on any website
 3. **Typography** - Change font, increase size to 150%
 4. **Hide Elements** - Toggle "Hide Ads" and "Hide Images"
@@ -53,7 +53,7 @@ Edit `manifest.json` and comment out lines 8-18 (the icon sections)
 6. **Save Preset** - Save current configuration
 
 ### Closing (15 sec)
-*"All 56 tools work in real-time, settings persist, and it's built with pure CSS and vanilla JavaScript."*
+*"All 60 tools work in real-time, settings persist, and it's built with pure CSS and vanilla JavaScript."*
 
 ---
 
@@ -88,7 +88,7 @@ Edit `manifest.json` and comment out lines 8-18 (the icon sections)
 
 ```
 ✅ manifest.json      - Extension config
-✅ popup.html         - UI structure (56 tools)
+✅ popup.html         - UI structure (60 tools)
 ✅ popup.css          - Professional styling
 ✅ popup.js           - Control logic
 ✅ content.js         - Page modification engine
@@ -112,7 +112,7 @@ Edit `manifest.json` and comment out lines 8-18 (the icon sections)
 
 ## 🎯 Key Selling Points
 
-1. **56+ Tools** - Most comprehensive toolkit
+1. **60+ Tools** - Most comprehensive toolkit
 2. **Professional UI** - Dark theme, gradients, animations
 3. **Customizable** - Hide/show categories via settings
 4. **Persistent** - Settings saved automatically
@@ -126,7 +126,7 @@ Edit `manifest.json` and comment out lines 8-18 (the icon sections)
 ## 🚀 You're Ready!
 
 Your extension has:
-- ✅ 56 individual tools
+- ✅ 60 individual tools
 - ✅ Professional fancy UI with CSS styling
 - ✅ Settings panel for customization
 - ✅ Save/load preset system
