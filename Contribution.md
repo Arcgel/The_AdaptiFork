@@ -1,5 +1,7 @@
 Contributing to 🍴 The AdaptiFork
+
 Project Overview
+
 A highly modular and contributor-friendly browser extension that acts as a customizable accessibility hub for the web, featuring decoupled architecture and a clear path for feature expansion.
 
 ⚙️ Installation (For Development)

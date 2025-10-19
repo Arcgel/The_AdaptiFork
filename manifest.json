@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Ultimate Web Toolkit - 50+ Tools",
+  "name": "Ultimate Web Toolkit - 60+ Tools",
   "version": "1.2",
-  "description": "Professional toolkit with 50+ features including dark mode, fonts, filters, productivity tools, and more!",
+  "description": "Professional toolkit with 60+ features including dark mode, fonts, filters, productivity tools, and more!",
   "icons": {
     "128": "icon.png" 
   },

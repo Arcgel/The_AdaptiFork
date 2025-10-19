@@ -258,7 +258,7 @@ Test on multiple websites to ensure compatibility:
 - [ ] **Practice Demo** - Run through 2-minute script
 - [ ] **Backup Browser** - Have second browser window ready
 - [ ] **Test Websites** - Bookmark 2-3 good demo sites
-- [ ] **Know Feature Count** - Can say "56+ tools" confidently
+- [ ] **Know Feature Count** - Can say "60+ tools" confidently
 - [ ] **Explain Tech** - Can explain vanilla JS, Chrome APIs
 - [ ] **Handle Questions** - Prepared for common questions
 
@@ -322,7 +322,7 @@ Workaround:
 
 You're ready! Your extension:
 - ✅ Installs correctly
-- ✅ All 56+ features work
+- ✅ All 60+ features work
 - ✅ UI is professional
 - ✅ Settings persist
 - ✅ Works across websites
