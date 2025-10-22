@@ -1,129 +1,117 @@
-Contributing to 🍴 The AdaptiFork
+# Contributing to 🚀 Ultimate Web Toolkit
 
-Project Overview
+## Project Overview
 
-A highly modular and contributor-friendly browser extension that acts as a customizable accessibility hub for the web, featuring decoupled architecture and a clear path for feature expansion.
+A professional Chrome extension with **64 features** that acts as a comprehensive web customization toolkit. The extension includes visual effects, typography controls, layout modifications, reading enhancements, color customization, animation controls, productivity tools, and AI agent chat features.
 
-⚙️ Installation (For Development)
+## ⚙️ Installation (For Development)
+
 Since this project is a browser extension, you need to load it directly into your browser's Developer Mode for testing and development.
 
-Clone the Repository: Download or clone the entire project folder locally.
+1. **Clone the Repository**: Download or clone the entire project folder locally.
 
-Open Extensions: Navigate to your browser's extension management page (e.g., chrome://extensions or edge://extensions).
+2. **Open Extensions**: Navigate to your browser's extension management page (e.g., `chrome://extensions` or `edge://extensions`).
 
-Enable Developer Mode: Toggle the Developer mode switch (usually found in the top right corner).
+3. **Enable Developer Mode**: Toggle the Developer mode switch (usually found in the top right corner).
 
-Load Unpacked: Click the Load unpacked button.
+4. **Load Unpacked**: Click the "Load unpacked" button.
 
-Select Folder: Select the root directory of the project (the folder containing manifest.json, popup.html, etc.).
+5. **Select Folder**: Select the root directory of the project (the folder containing `manifest.json`, `popup.html`, etc.).
 
-Testing: Go to any live webpage and click the extension icon in your toolbar to open the custom popup.
+6. **Testing**: Go to any live webpage and click the extension icon in your toolbar to open the popup interface.
 
-🚀 How to Add a New Feature (The "Forking" Process)
-We're excited you want to help expand The AdaptiFork! The core design of this extension separates features into modular, self-contained definitions. This makes adding a new accessibility tool extremely fast and efficient. You only need to modify two files: popup.js and content.js.
+## 🚀 How to Contribute
 
-Step 1: Define the Feature in popup.js
-Open the popup.js file and locate the global ALL_FEATURES array near the top. Add a new object to this array following the modular format.
+We welcome contributions to expand the Ultimate Web Toolkit! The extension is built with a modular architecture where features are organized into categories. Here's how you can contribute:
 
-Property
+### Current Architecture
 
-Description
+The extension consists of:
+- **popup.html** - UI structure with 8 organized categories
+- **popup.css** - Professional dark theme styling
+- **popup.js** - UI control logic and event handlers
+- **content.js** - Page manipulation and CSS injection
+- **background.js** - Service worker for extension lifecycle
 
-Example Value
+### Ways to Contribute
 
-id
+1. **Add New Tools** - Add new customization tools to existing categories
+2. **Improve UI/UX** - Enhance the interface design and user experience
+3. **Fix Bugs** - Report and fix any issues you find
+4. **Improve Documentation** - Help make the docs clearer and more comprehensive
+5. **Add Tests** - Create testing scripts for features
 
-Required. Unique identifier (kebab-case).
+### Adding a New Tool
 
-'inverted-colors'
+To add a new tool to the extension:
 
-label
+1. **Choose a Category**: Decide which category your tool belongs to (Visual Effects, Typography, Layout, etc.)
 
-The title displayed in the popup.
+2. **Update popup.html**: Add your tool's HTML structure in the appropriate category section following the existing pattern:
+```html
+<div class="tool-card">
+    <div class="tool-header">
+        <span class="tool-icon">🎨</span>
+        <h3 class="tool-name">Your Tool Name</h3>
+    </div>
+    <div class="tool-control">
+        <!-- Add toggle, slider, dropdown, or button -->
+    </div>
+</div>
+```
 
-'Inverted Colors'
+3. **Update popup.js**: Add event listeners and control logic for your tool
 
-icon
+4. **Update content.js**: Implement the actual page modification logic using CSS injection
 
-The icon displayed on the tile (use Emojis or simple characters).
+5. **Test Thoroughly**: Test your tool on multiple websites to ensure compatibility
 
-'🔄'
+### Code Style Guidelines
 
-type
+- Use **camelCase** for JavaScript variables and functions
+- Use **kebab-case** for HTML IDs and CSS classes
+- Add comments to explain complex logic
+- Follow the existing code structure and patterns
+- Ensure all features work in real-time
+- Save settings to `chrome.storage.local` for persistence
 
-How the feature interacts (toggle, slider, action).
+### 💡 Best Practices
 
-'toggle'
+- **CSS Injection**: Use CSS filters and transforms for visual effects
+- **Performance**: Keep modifications lightweight and efficient
+- **Compatibility**: Test on various websites (news, social media, documentation sites)
+- **Accessibility**: Ensure your tools don't break website accessibility
+- **User Experience**: Provide clear labels and intuitive controls
+- **Error Handling**: Handle edge cases gracefully
 
-grid_space
+### Submitting Your Contribution
 
-The width the tile takes up in the grid (up to 4).
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-tool-name`)
+3. Make your changes and test thoroughly
+4. Commit with clear messages (`git commit -m "Add: New color picker tool"`)
+5. Push to your fork (`git push origin feature/your-tool-name`)
+6. Open a Pull Request with a detailed description
 
-2
+## 📝 Feature Categories
 
-actionValue
+The extension is organized into 8 categories:
 
-The default/initial state (false, 100, 0).
+1. **🎨 Visual Effects** (10 tools) - Dark mode, filters, brightness, etc.
+2. **📝 Typography** (8 tools) - Fonts, sizes, spacing, etc.
+3. **📐 Layout & Display** (10 tools) - Zoom, hide elements, rotate, etc.
+4. **📖 Reading & Focus** (8 tools) - Reading mode, focus mode, dyslexia font, etc.
+5. **🎨 Colors & Theme** (6 tools) - Color pickers, preset themes, etc.
+6. **✨ Animations & Effects** (6 tools) - Animation controls, smooth scroll, etc.
+7. **⚡ Productivity** (8 tools) - Screenshot, word count, translate, etc.
+8. **🤖 AI Agent Chat** (4 tools) - AI assistants for various tasks
 
-false
+## 🤝 Community Guidelines
 
-unit
+- Be respectful and constructive in discussions
+- Help others learn and grow
+- Share your knowledge and experience
+- Report bugs with detailed reproduction steps
+- Suggest features with clear use cases
 
-Unit for sliders/values (if applicable).
-
-''
-
-Example of a New Feature Object:
-
-{
-    id: 'inverted-colors',
-    label: 'Inverted Colors',
-    icon: '🔄',
-    type: 'toggle',
-    grid_space: 2,
-    actionValue: false, // Default is OFF
-    unit: ''
-},
-
-Step 2: Implement the Logic in popup.js
-In popup.js, you must define the actionLogic function. This function handles what happens when the user clicks the tile.
-
-Locate the handleTileClick function in popup.js.
-
-Add a case to the switch statement for your new feature's id.
-
-// Inside handleTileClick in popup.js
-case 'inverted-colors':
-    // If it's a toggle, flip the boolean actionValue
-    feature.actionValue = !feature.actionValue;
-    break;
-
-Step 3: Implement the Application Logic in content.js
-The content.js file is responsible for applying the actual CSS effects to the live webpage.
-
-Open content.js and locate the global ALL_FEATURES array. You must add the exact same object definition here that you created in Step 1.
-
-Add the applyLogic function to your feature object.
-
-Example of the Feature Object in content.js:
-
-{
-    id: 'inverted-colors',
-    label: 'Inverted Colors',
-    icon: '🔄',
-    actionValue: false,
-    applyLogic: (feature) => {
-        // This is the code that modifies the webpage!
-        if (feature.actionValue) {
-            // Apply a simple CSS filter to the whole document body
-            document.body.style.filter += ' invert(100%)';
-        }
-    }
-},
-
-💡 Best Practices
-Tailwind CSS: All UI elements injected or styled within the popup should use Tailwind classes for responsive design and aesthetic consistency.
-
-CSS Variables: For effects on the webpage (in content.js), always try to use CSS Variables (e.g., --custom-font-scale) applied to the document.documentElement (:root). This makes the effects easy to reset and manage.
-
-Persistence: Do not worry about saving data! The core logic in popup.js handles saving and loading your feature's actionValue automatically.
+Thank you for contributing to Ultimate Web Toolkit! 🚀

@@ -75,6 +75,12 @@ A professional Chrome extension with **60+ powerful tools** to customize and enh
 - **Select All** - Select all page content
 - **Translate** - Open Google Translate
 
+### 🤖 AI Agent Chat (4 Tools)
+- **Web Assistant** - Chat with AI for design, code, or writing assistance
+- **Career & Skill Coach** - Personalized learning paths and interview practice
+- **Finance Manager AI** - Budgeting, debt optimization, and investment insights
+- **Wellness Chatbot** - 24/7 emotional support and CBT-based exercises
+
 ### 🎯 Additional Features
 - **Settings Panel** - Customize visible tool categories
 - **Save/Load Presets** - Save your favorite configurations
