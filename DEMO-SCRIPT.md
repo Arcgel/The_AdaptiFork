@@ -98,7 +98,7 @@
 ### 🎯 Closing (20 seconds)
 
 **Say:**
-> "In total, there are **60+ individual tools** across 8 categories - all working in real-time with persistent settings. Built entirely with vanilla JavaScript and pure CSS - no frameworks needed. Thank you!"
+> "In total, there are **60 individual tools** across 8 categories - including AI agent chat features - all working in real-time with persistent settings. Built entirely with vanilla JavaScript and pure CSS - no frameworks needed. Thank you!"
 
 **Do:**
 - Scroll through the categories quickly to show scope
@@ -108,8 +108,9 @@
 
 ## 📊 Key Numbers to Mention
 
-- **60+ tools** - Main selling point
-- **8 categories** - Organization
+- **60 tools** - Main selling point
+- **64 total features** - Including system features
+- **8 categories** - Organization (including AI Agent Chat)
 - **8 preset themes** - Color options
 - **11 fonts** - Typography choices
 - **0 dependencies** - Pure vanilla code
@@ -158,7 +159,7 @@
 - ✅ Have a clean browser window ready
 - ✅ Close unnecessary tabs
 - ✅ Practice the 2-minute flow
-- ✅ Know your feature count (60+)
+- ✅ Know your feature count (60 tools, 64 total features)
 
 ### During Demo:
 - 🎯 Speak clearly and confidently

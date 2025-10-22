@@ -66,6 +66,7 @@ Edit `manifest.json` and comment out lines 8-18 (the icon sections)
 **Colors (6):** Custom colors, 8 preset themes  
 **Animations (6):** Disable animations, smooth scroll, effects  
 **Productivity (8):** Auto-scroll, screenshot, word count, translate  
+**AI Agent Chat (4):** Web assistant, career coach, finance AI, wellness bot  
 
 ---
 
@@ -112,7 +113,7 @@ Edit `manifest.json` and comment out lines 8-18 (the icon sections)
 
 ## 🎯 Key Selling Points
 
-1. **60+ Tools** - Most comprehensive toolkit
+1. **60 Tools** - Most comprehensive toolkit
 2. **Professional UI** - Dark theme, gradients, animations
 3. **Customizable** - Hide/show categories via settings
 4. **Persistent** - Settings saved automatically
@@ -126,8 +127,8 @@ Edit `manifest.json` and comment out lines 8-18 (the icon sections)
 ## 🚀 You're Ready!
 
 Your extension has:
-- ✅ 60 individual tools
-- ✅ Professional fancy UI with CSS styling
+- ✅ 60 individual tools + 4 system features = 64 total
+- ✅ Professional dark UI with CSS styling
 - ✅ Settings panel for customization
 - ✅ Save/load preset system
 - ✅ All features fully functional
