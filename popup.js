@@ -1127,6 +1127,7 @@ function sendAIMessage() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. Get Elements ---
     const modal = document.getElementById('ai-modal');
     const closeModal = document.querySelector('.close-btn');
     const modalTitle = modal.querySelector('h2');
@@ -1134,8 +1135,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiInput = document.getElementById('ai-input');
     const aiSend = document.getElementById('ai-send');
     
+    // Get all buttons that open an AI chat (assuming they all have class 'btn-secondary')
     const toolButtons = document.querySelectorAll('.category-content .btn-secondary');
 
+    // --- 2. Tool Configuration Map ---
+    // Maps the button ID to the chat title, initial prompt, and AI persona for the webhook
     const toolConfig = {
         'open-ai-chat': {
             title: '🤖 Web Assistant Chat',
@@ -1159,41 +1163,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- 3. Modal Open/Close Functionality ---
+
+    // Function to open the modal and set context
     const openChatModal = (buttonId) => {
         const config = toolConfig[buttonId];
         if (config) {
+            // Set modal title and initial AI message
             modalTitle.innerHTML = config.title;
             aiResponse.innerHTML = `<div class="ai-msg">${config.prompt}</div>`;
+            
+            // Store the current AI persona on the send button for later use
             aiSend.setAttribute('data-persona', config.persona);
+
+            // Clear the input area and display the modal
             aiInput.value = '';
             modal.style.display = 'block';
             aiResponse.scrollTop = aiResponse.scrollHeight;
         }
     };
 
+    // Attach event listeners to all tool buttons
     toolButtons.forEach(button => {
         button.addEventListener('click', (event) => {
             openChatModal(event.currentTarget.id);
         });
     });
 
+    // Close Modal listeners (re-using your original logic)
     closeModal.onclick = () => modal.style.display = 'none';
     window.onclick = (e) => { 
         if (e.target === modal) modal.style.display = 'none'; 
     };
     
+    // --- 4. Enhanced Send Functionality (Context-Aware) ---
+
+    // Your existing webhook URL
     const webhookURL = "https://hook.us2.make.com/wvvdqqw355sog6lk7moid2xpr18qnl6p";
 
+    // Send button click handler
     aiSend.addEventListener('click', async () => {
         const msg = aiInput.value.trim();
-        const persona = aiSend.getAttribute('data-persona');
+        const persona = aiSend.getAttribute('data-persona'); // Get the current AI role
 
         if (!msg) return;
 
+        // Display user's message
         aiResponse.innerHTML += `<div class="user-msg">${msg}</div>`;
         aiInput.value = '';
         aiResponse.scrollTop = aiResponse.scrollHeight;
 
+        // Show temporary "thinking" message
         const loadingMsg = document.createElement('div');
         loadingMsg.className = 'ai-msg';
         loadingMsg.textContent = '🤖 Thinking...';
@@ -1201,18 +1221,20 @@ document.addEventListener('DOMContentLoaded', () => {
         aiResponse.scrollTop = aiResponse.scrollHeight;
 
         try {
+            // Send message to Make.com webhook with persona context
             const res = await fetch(webhookURL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     text: msg,
-                    persona: persona 
+                    persona: persona // This tells Make.com which AI role to use
                 })
             });
 
             const text = await res.text();
             loadingMsg.remove();
 
+            // Display AI response with formatting
             const formattedText = formatAIResponse(text);
             aiResponse.innerHTML += `<div class="ai-msg">🤖 ${formattedText}</div>`;
             aiResponse.scrollTop = aiResponse.scrollHeight;
