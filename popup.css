@@ -834,12 +834,14 @@ select:focus {
   box-shadow: 0 0 8px rgba(108, 99, 255, 0.3);
 }
 
-.ai-chatbox {
-  background: #f8f9fa;
-  border: 1px solid #ddd;
+.ai-chatbox, #ai-response {
+  background: #111827;
+  border: 1px solid #374151;
   border-radius: 10px;
-  padding: 10px;
-  height: 150px;
+  padding: 15px;
+  height: 300px !important;
+  min-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
   margin-top: 10px;
   font-size: 14px;
@@ -847,9 +849,38 @@ select:focus {
 
 .ai-msg {
   background: #e9ffe9;
-  padding: 5px 10px;
+  padding: 10px 15px;
   border-radius: 8px;
-  margin: 5px 0;
+  margin: 8px 0;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.ai-msg p {
+  margin: 8px 0;
+}
+
+.ai-msg p:first-child {
+  margin-top: 0;
+}
+
+.ai-msg p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-msg strong {
+  font-weight: 600;
+  color: #065f46;
+}
+
+.ai-msg em {
+  font-style: italic;
+  color: #047857;
+}
+
+.ai-msg li {
+  margin: 4px 0;
+  list-style-position: inside;
 }
 
 .user-msg {
@@ -959,8 +990,38 @@ select:focus {
 }
 .ai-msg {
   background: #374151;
-  padding: 6px 10px;
+  padding: 10px 15px;
   border-radius: 10px;
-  margin: 5px 0;
+  margin: 8px 0;
   text-align: left;
+  line-height: 1.6;
+  word-wrap: break-word;
+  color: #e5e7eb;
+}
+
+.ai-msg p {
+  margin: 8px 0;
+}
+
+.ai-msg p:first-child {
+  margin-top: 0;
+}
+
+.ai-msg p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-msg strong {
+  font-weight: 600;
+  color: #a7f3d0;
+}
+
+.ai-msg em {
+  font-style: italic;
+  color: #6ee7b7;
+}
+
+.ai-msg li {
+  margin: 4px 0;
+  list-style-position: inside;
 }

@@ -1042,6 +1042,36 @@ function closeAIModal() {
     if (modal) modal.style.display = 'none';
 }
 
+// Format AI Response for Better Readability
+function formatAIResponse(text) {
+    if (!text) return "Sorry, no response received.";
+    
+    // Replace double line breaks with paragraph breaks
+    let formatted = text.replace(/\n\n/g, '</p><p>');
+    
+    // Replace single line breaks with <br>
+    formatted = formatted.replace(/\n/g, '<br>');
+    
+    // Handle markdown-style bold (**text**)
+    formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // Handle markdown-style italic (*text*)
+    formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    
+    // Handle numbered lists (1. item)
+    formatted = formatted.replace(/(\d+\.\s+.+?)(<br>|<\/p>)/g, '<li style="margin-left: 20px;">$1</li>$2');
+    
+    // Handle bullet points (- item or • item)
+    formatted = formatted.replace(/([-•]\s+.+?)(<br>|<\/p>)/g, '<li style="margin-left: 20px;">$1</li>$2');
+    
+    // Wrap in paragraph tags if not already wrapped
+    if (!formatted.startsWith('<p>')) {
+        formatted = '<p>' + formatted + '</p>';
+    }
+    
+    return formatted;
+}
+
 function sendAIMessage() {
     const aiInput = document.getElementById('ai-input');
     const aiResponse = document.getElementById('ai-response');
@@ -1082,7 +1112,8 @@ function sendAIMessage() {
     .then(text => {
         loadingMsg.remove();
         if (aiResponse) {
-            aiResponse.innerHTML += `<div class="ai-msg">🤖 ${text || "Sorry, no response received."}</div>`;
+            const formattedText = formatAIResponse(text);
+            aiResponse.innerHTML += `<div class="ai-msg">🤖 ${formattedText}</div>`;
             aiResponse.scrollTop = aiResponse.scrollHeight;
         }
     })
@@ -1170,9 +1201,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Your existing webhook URL
     const webhookURL = "https://hook.us2.make.com/wvvdqqw355sog6lk7moid2xpr18qnl6p";
 
+    // Send button click handler
     aiSend.addEventListener('click', async () => {
         const msg = aiInput.value.trim();
-        const persona = aiSend.getAttribute('data-persona'); // Get the current AI role!
+        const persona = aiSend.getAttribute('data-persona'); // Get the current AI role
 
         if (!msg) return;
 
@@ -1189,23 +1221,22 @@ document.addEventListener('DOMContentLoaded', () => {
         aiResponse.scrollTop = aiResponse.scrollHeight;
 
         try {
-            // Send message to Make.com webhook with the added 'persona' context
+            // Send message to Make.com webhook with persona context
             const res = await fetch(webhookURL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     text: msg,
-                    // **THIS IS THE CRITICAL CHANGE**
-                    // This tells your Make.com scenario which AI role to use.
-                    persona: persona 
+                    persona: persona // This tells Make.com which AI role to use
                 })
             });
 
             const text = await res.text();
             loadingMsg.remove();
 
-            // Display AI response
-            aiResponse.innerHTML += `<div class="ai-msg">🤖 ${text || "Sorry, no response received."}</div>`;
+            // Display AI response with formatting
+            const formattedText = formatAIResponse(text);
+            aiResponse.innerHTML += `<div class="ai-msg">🤖 ${formattedText}</div>`;
             aiResponse.scrollTop = aiResponse.scrollHeight;
 
         } catch (error) {
@@ -1214,5 +1245,4 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(error);
         }
     });
-
 });
